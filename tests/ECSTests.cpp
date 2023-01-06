@@ -294,14 +294,121 @@ TEST(ECS, LoopEntities) {
     }
 }
 
-TEST(ECS, LoopWithFilter) {
+TEST(ECS, LoopOnceWithFilter) {
     ecs::ECSManager<int, std::string> ecs;
 
-    for (auto& data : ecs::Filter<int>(ecs)) {
+    auto entity = ecs.MakeEntity();
+    ecs.Add(entity, 5);
+    ecs.Add<std::string>(entity, "string");
+    int count = 0;
+    for (auto [val1, val2] : ecs::Filter<ecs::ECSManager<int, std::string>, int, std::string>(ecs)) {
+        ASSERT_EQ(val1, 5);
+        ASSERT_EQ(val2, "string");
+        count++;
+    }
+    ASSERT_EQ(count, 1);
+}
 
+TEST(ECS, LoopMultipleWithFilter) {
+    ecs::ECSManager<int, std::string> ecs;
+    {
+        auto entity = ecs.MakeEntity();
+        ecs.Add(entity, 5);
+        ecs.Add<std::string>(entity, "one");
+    }
+    {
+        auto entity = ecs.MakeEntity();
+        ecs.Add<std::string>(entity, "two");
+    }
+    {
+        auto entity = ecs.MakeEntity();
+        ecs.Add(entity, 6);
+    }
+    {
+        auto entity = ecs.MakeEntity();
+        ecs.Add(entity, 7);
+        ecs.Add<std::string>(entity, "three");
+    }
+
+    {
+        int count = 0;
+        for (auto [val1, val2] : ecs::Filter<ecs::ECSManager<int, std::string>, int, std::string>(ecs)) {
+            count++;
+        }
+        ASSERT_EQ(count, 2);
+    }
+
+    {
+        int count = 0;
+        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, int>(ecs)) {
+            count++;
+        }
+        ASSERT_EQ(count, 3);
+    }
+
+    {
+        int count = 0;
+        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, std::string>(ecs)) {
+            count++;
+        }
+        ASSERT_EQ(count, 3);
     }
 }
 
+TEST(ECS, RemoveEntityAndLoop) {
+    ecs::ECSManager<int, std::string> ecs;
+    auto entity = ecs.MakeEntity();
+    ecs.Add(entity, 5);
+    ecs.Add<std::string>(entity, "one");
+    auto entity2 = ecs.MakeEntity();
+    ecs.Add<std::string>(entity2, "two");
+    auto entity3 = ecs.MakeEntity();
+    ecs.Add(entity3, 6);
+
+    {
+        int count = 0;
+        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, std::string>(ecs)) {
+            count++;
+        }
+        ASSERT_EQ(count, 2);
+    }
+
+    ecs.Remove<std::string>(entity2);
+    {
+        int count = 0;
+        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, std::string>(ecs)) {
+            count++;
+        }
+        ASSERT_EQ(count, 1);
+    }
+
+    ecs.Remove<int>(entity);
+    {
+        int count = 0;
+        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, int>(ecs)) {
+            count++;
+        }
+        ASSERT_EQ(count, 1);
+    }
+
+    ecs.Remove<int>(entity3);
+    {
+        int count = 0;
+        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, int>(ecs)) {
+            count++;
+        }
+        ASSERT_EQ(count, 0);
+    }
+
+    ecs.Remove<std::string>(entity);
+    {
+        int count = 0;
+        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, std::string>(ecs)) {
+            count++;
+        }
+        ASSERT_EQ(count, 0);
+    }
+}
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

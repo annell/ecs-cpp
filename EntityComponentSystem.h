@@ -17,9 +17,7 @@ namespace ecs {
             return id;
         }
 
-        bool operator==(const EntityID &rhs) const {
-            return id == rhs.id;
-        }
+        friend bool operator==(const EntityID &a, const EntityID &b) { return a.id == b.id; };
     private:
         ID id;
     };
@@ -30,6 +28,25 @@ namespace ecs {
     template<typename... TComponents>
     class ECSManager {
     public:
+        constexpr static int slots = 1024;
+
+        template<typename TComponent>
+        using ComponentArray = std::array<TComponent, slots>;
+        using ComponentArrays = std::tuple<ComponentArray<TComponents>...>;
+
+        template<typename TComponent>
+        struct ComponentActive {
+            bool active = false;
+        };
+        using ComponentsActive = std::tuple<ComponentActive<TComponents>...>;
+
+        struct Entity {
+            ComponentsActive componentsActive{};
+            bool isEntityActive = false;
+            EntityID id = EntityID(0);
+        };
+        using EntitiesSlots = std::array<Entity, slots>;
+
         ECSManager() {
             InitializeEntities();
         }
@@ -103,19 +120,13 @@ namespace ecs {
             return endSlot;
         }
 
-        [[nodiscard]] auto begin() const {
+        [[nodiscard]] typename EntitiesSlots::const_iterator begin() const {
             return entities.begin();
         }
 
-        [[nodiscard]] auto end() const {
+        [[nodiscard]] typename EntitiesSlots::const_iterator end() const {
             return entities.begin() + endSlot;
         }
-
-        template<typename TComponent>
-        struct ComponentActive {
-            bool active = false;
-        };
-        using ComponentsActive = std::tuple<ComponentActive<TComponents>...>;
 
         template<typename TComponent>
         [[nodiscard]] bool IsComponentActive(const ComponentsActive &components) const {
@@ -123,18 +134,6 @@ namespace ecs {
         }
 
     private:
-        constexpr static int slots = 1024;
-
-        template<typename TComponent>
-        using ComponentArray = std::array<TComponent, slots>;
-        using ComponentArrays = std::tuple<ComponentArray<TComponents>...>;
-
-        struct Entity {
-            ComponentsActive componentsActive{};
-            bool isEntityActive = false;
-            EntityID id = EntityID(0);
-        };
-        using EntitiesSlots = std::array<Entity, slots>;
 
         inline void InitializeEntities() {
             int id = 0;
@@ -203,40 +202,46 @@ namespace ecs {
         ComponentArrays componentArrays{};
     };
 
-    template<typename... TComponents>
-    struct Iterator {
-        using value_type = std::tuple<TComponents...>;
+    template<typename TECSManager, typename... TComponents>
+    struct FilterIterator {
+    private:
+        using TInternalIterator = typename TECSManager::EntitiesSlots::const_iterator;
+    public:
+        FilterIterator(TECSManager &ecs, TInternalIterator it) : ecs(ecs), it(it) {}
 
-        Iterator(size_t slot, size_t usedSlots) : slot(slot), usedSlots(usedSlots) {}
-
-        value_type &operator*() const { return *m_ptr; }
-        value_type *operator->() { return m_ptr; }
-        Iterator &operator++() {
-            slot++;
+        auto operator*() const { return ecs.template GetSeveral<TComponents ...>(it->id); }
+        FilterIterator &operator++() {
+            it++;
+            auto endIt = ecs.end();
+            while (it != endIt && (!it->isEntityActive || !ecs.template Has<TComponents ...>(it->id))) {
+                it++;
+            }
             return *this;
         }
-        Iterator operator++(int) {
-            Iterator tmp = *this;
-            ++(*this);
-            return tmp;
-        }
-        friend bool operator==(const Iterator &a, const Iterator &b) { return a.slot == b.slot; };
-        friend bool operator!=(const Iterator &a, const Iterator &b) { return a.slot != b.slot; };
+        friend bool operator==(const FilterIterator &a, const FilterIterator &b) { return a.it == b.it; };
+        friend bool operator!=(const FilterIterator &a, const FilterIterator &b) { return a.it != b.it; };
 
     private:
-        size_t slot = 0;
-        const size_t usedSlots = 0;
-        value_type *m_ptr = nullptr;
+        TECSManager& ecs;
+        TInternalIterator it;
     };
 
-    template<typename... TComponents>
+    template<typename TECSManager, typename... TComponents>
     struct Filter {
+        using TFilterIterator = FilterIterator<TECSManager, TComponents...>;
 
-        explicit Filter(auto &ecs) {}
-        [[nodiscard]] Iterator<TComponents...> begin() { return Iterator<TComponents...>(0, 0); }
-        [[nodiscard]] Iterator<TComponents...> end() { return Iterator<TComponents...>(0, 0); }
+        explicit Filter(TECSManager &ecs) : ecs(ecs) {}
+        [[nodiscard]] TFilterIterator begin() {
+            auto endIt = ecs.end();
+            auto it = ecs.begin();
+            while (it != endIt && (!it->isEntityActive || !ecs.template Has<TComponents ...>(it->id))) {
+                it++;
+            }
+            return TFilterIterator(ecs, it);
+        }
+        [[nodiscard]] TFilterIterator end() { return TFilterIterator(ecs, ecs.end()); }
 
     private:
-        //auto* ecs;
+        TECSManager& ecs;
     };
 }// namespace ecs
