@@ -1,0 +1,6 @@
+[requires]
+gtest/cci.20210126
+
+[generators]
+CMakeDeps
+CMakeToolchain
