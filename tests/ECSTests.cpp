@@ -250,7 +250,7 @@ TEST(ECS, LoopEntities) {
     ecs::ECSManager<int, std::string> ecs;
     {
         int callCount = 0;
-        for (auto &entity : ecs) {
+        for (auto &entity: ecs) {
             callCount++;
         }
         ASSERT_EQ(callCount, 0);
@@ -260,7 +260,7 @@ TEST(ECS, LoopEntities) {
         auto entity = ecs.MakeEntity();
         ecs.Add(entity, 5);
         int callCount = 0;
-        for (auto &e : ecs) {
+        for (auto &e: ecs) {
             callCount++;
             EXPECT_EQ(e.id, entity);
             EXPECT_TRUE(ecs.IsComponentActive<int>(e.componentsActive));
@@ -274,7 +274,7 @@ TEST(ECS, LoopEntities) {
         ecs.Add(entity, std::string("hej"));
 
         int callCount = 0;
-        for (auto &e : ecs) {
+        for (auto &e: ecs) {
             callCount++;
             if (e.id == entity) {
                 EXPECT_TRUE(ecs.IsComponentActive<int>(e.componentsActive));
@@ -286,7 +286,7 @@ TEST(ECS, LoopEntities) {
         ASSERT_EQ(callCount, 2);
         ecs.Remove(entity);
         callCount = 0;
-        for (auto &e : ecs) {
+        for (auto &e: ecs) {
             callCount++;
         }
         ASSERT_EQ(callCount, 1);
@@ -301,7 +301,7 @@ TEST(ECS, LoopOnceWithFilter) {
     ecs.Add(entity, 5);
     ecs.Add<std::string>(entity, "string");
     int count = 0;
-    for (auto [val1, val2] : ecs.FilterEntities<int, std::string>()) {
+    for (auto [val1, val2]: ecs.FilterEntities<int, std::string>()) {
         ASSERT_EQ(val1, 5);
         ASSERT_EQ(val2, "string");
         count++;
@@ -332,7 +332,7 @@ TEST(ECS, LoopMultipleWithFilter) {
 
     {
         int count = 0;
-        for (auto [val1, val2] : ecs.FilterEntities<int, std::string>()) {
+        for (auto [val1, val2]: ecs.FilterEntities<int, std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 2);
@@ -340,7 +340,7 @@ TEST(ECS, LoopMultipleWithFilter) {
 
     {
         int count = 0;
-        for (auto [val] : ecs.FilterEntities<int>()) {
+        for (auto [val]: ecs.FilterEntities<int>()) {
             count++;
         }
         ASSERT_EQ(count, 3);
@@ -348,7 +348,7 @@ TEST(ECS, LoopMultipleWithFilter) {
 
     {
         int count = 0;
-        for (auto [val] : ecs.FilterEntities<std::string>()) {
+        for (auto [val]: ecs.FilterEntities<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 3);
@@ -368,13 +368,13 @@ TEST(ECS, RemoveEntityAndLoop) {
 
     {
         int count = 0;
-        for (auto [val] : ecs.FilterEntities<std::string>()) {
+        for (auto [val]: ecs.FilterEntities<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 2);
 
         auto filter = ecs.FilterEntities<std::string>();
-        std::for_each(filter.begin(), filter.end(), [&] (const auto& it) {
+        std::for_each(filter.begin(), filter.end(), [&](const auto &it) {
             auto [val] = it;
             count++;
         });
@@ -384,7 +384,7 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<std::string>(entity2);
     {
         int count = 0;
-        for (auto [val] : ecs.FilterEntities<std::string>()) {
+        for (auto [val]: ecs.FilterEntities<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 1);
@@ -393,7 +393,7 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<int>(entity);
     {
         int count = 0;
-        for (auto [val] : ecs.FilterEntities<int>()) {
+        for (auto [val]: ecs.FilterEntities<int>()) {
             count++;
         }
         ASSERT_EQ(count, 1);
@@ -402,7 +402,7 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<int>(entity3);
     {
         int count = 0;
-        for (auto [val] : ecs.FilterEntities<int>()) {
+        for (auto [val]: ecs.FilterEntities<int>()) {
             count++;
         }
         ASSERT_EQ(count, 0);
@@ -411,11 +411,49 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<std::string>(entity);
     {
         int count = 0;
-        for (auto [val] : ecs.FilterEntities<std::string>()) {
+        for (auto [val]: ecs.FilterEntities<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 0);
     }
+}
+
+TEST(ECS, ReadmeShowcase) {
+
+    ecs::ECSManager<int, float, std::string> ecs;
+    auto entity1 = ecs.MakeEntity();
+    auto entity2 = ecs.MakeEntity();
+    auto entity3 = ecs.MakeEntity();
+
+// Fill up container with components
+    ecs.Add(entity1, 1);
+    ecs.Add(entity1, std::string("Hello"));
+//ecs.Add(entity1, 5.0f); // No float component on entity1
+
+    ecs.Add(entity2, 2);
+    ecs.Add(entity2, std::string("World"));
+    ecs.Add(entity2, 5.0f);
+
+    ecs.Add(entity3, 3);
+//ecs.Add(entity3, "!"); // No string component on entity3
+    ecs.Add(entity3, 5.0f);
+
+// Will match entity1 and entity2
+    std::string output;
+    for (auto [strVal, intVal]: ecs.FilterEntities<std::string, int>()) {
+        output += strVal + " - " + std::to_string(intVal) + " ";
+    }
+    ASSERT_EQ(output, "Hello - 1 World - 2 ");
+
+    float fsum = 0;
+    int isum = 0;
+// Will match entity2 and entity3
+    for (auto [intVal, floatVal]: ecs.FilterEntities<int, float>()) {
+        isum += intVal;
+        fsum += floatVal;
+    }
+    ASSERT_EQ(fsum, 10.0f);
+    ASSERT_EQ(isum, 5);
 }
 
 
