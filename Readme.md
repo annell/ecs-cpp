@@ -1,5 +1,5 @@
-# Entity Component GetSystem (ECS)
-A fully dynamic header only Entity Component GetSystem where components can be added or removed to entities whenever.
+# Entity Component System (ECS)
+A fully dynamic header only Entity Component System where components can be added or removed to entities whenever.
 
 ## What is ECS?
 
@@ -9,7 +9,7 @@ From [Wikipedia](https://en.wikipedia.org/wiki/Entity_component_system):
 
 >`Component` A component labels an entity as possessing a particular aspect, and holds the data needed to model that aspect. For example, every game object that can take damage might have a Health component associated with its entity. Implementations typically use structs, classes, or associative arrays.
 
->`GetSystem` A system is a process which acts on all entities with the desired components. For example a physics system may query for entities having mass, velocity and position components, and iterate over the results doing physics calculations on the sets of components for each entity.
+>`System` A system is a process which acts on all entities with the desired components. For example a physics system may query for entities having mass, velocity and position components, and iterate over the results doing physics calculations on the sets of components for each entity.
 
 >The behavior of an entity can be changed at runtime by systems that add, remove or modify components. This eliminates the ambiguity problems of deep and wide inheritance hierarchies often found in Object Oriented Programming techniques that are difficult to understand, maintain, and extend. Common ECS approaches are highly compatible with, and are often combined with, data-oriented design techniques. Data for all instances of a component are commonly stored together in physical memory, enabling efficient memory access for systems which operate over many entities.
 
@@ -23,26 +23,26 @@ From [Wikipedia](https://en.wikipedia.org/wiki/Entity_component_system):
 ## Using this ECS
 Create a container, components it should handle are coded in upfront:
 ```c++
-    ecs::ECSManager<int, std::string> ecs;
+ecs::ECSManager<int, std::string> ecs;
 ```
 
 Add a entity to the container:
 ```c++
-    ecs::EntityID entity = ecs.MakeEntity();
+ecs::EntityID entity = ecs.Add();
 ```
 
 Add two components to the entity:
 ```c++
-    ecs.Add(entity, std::string("Hej"));
-    ecs.Add(entity, 5);
+ecs.Add(entity, std::string("Hej"));
+ecs.Add(entity, 5);
 ```
 
 Fill upp and loop over a system with its active entities that has active components:
 ```c++
 ecs::ECSManager<int, float, std::string> ecs;
-auto entity1 = ecs.MakeEntity();
-auto entity2 = ecs.MakeEntity();
-auto entity3 = ecs.MakeEntity();
+auto entity1 = ecs.Add();
+auto entity2 = ecs.Add();
+auto entity3 = ecs.Add();
 
 // Fill up container with components
 ecs.Add(entity1, 1);
