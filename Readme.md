@@ -1,5 +1,5 @@
-# Entity Component System (ECS)
-A fully dynamic header only Entity Component System where components can be added or removed to entities whenever.
+# Entity Component GetSystem (ECS)
+A fully dynamic header only Entity Component GetSystem where components can be added or removed to entities whenever.
 
 ## What is ECS?
 
@@ -9,7 +9,7 @@ From [Wikipedia](https://en.wikipedia.org/wiki/Entity_component_system):
 
 >`Component` A component labels an entity as possessing a particular aspect, and holds the data needed to model that aspect. For example, every game object that can take damage might have a Health component associated with its entity. Implementations typically use structs, classes, or associative arrays.
 
->`System` A system is a process which acts on all entities with the desired components. For example a physics system may query for entities having mass, velocity and position components, and iterate over the results doing physics calculations on the sets of components for each entity.
+>`GetSystem` A system is a process which acts on all entities with the desired components. For example a physics system may query for entities having mass, velocity and position components, and iterate over the results doing physics calculations on the sets of components for each entity.
 
 >The behavior of an entity can be changed at runtime by systems that add, remove or modify components. This eliminates the ambiguity problems of deep and wide inheritance hierarchies often found in Object Oriented Programming techniques that are difficult to understand, maintain, and extend. Common ECS approaches are highly compatible with, and are often combined with, data-oriented design techniques. Data for all instances of a component are commonly stored together in physical memory, enabling efficient memory access for systems which operate over many entities.
 
@@ -37,7 +37,7 @@ Add two components to the entity:
     ecs.Add(entity, 5);
 ```
 
-Fill upp and loop over active entities that has active components:
+Fill upp and loop over a system with its active entities that has active components:
 ```c++
 ecs::ECSManager<int, float, std::string> ecs;
 auto entity1 = ecs.MakeEntity();
@@ -59,7 +59,7 @@ ecs.Add(entity3, 5.0f);
 
 // Will match entity1 and entity2
 std::string output;
-for (auto [strVal, intVal]: ecs.FilterEntities<std::string, int>()) {
+for (auto [strVal, intVal]: ecs.GetSystem<std::string, int>()) {
     output += strVal + " - " + std::to_string(intVal) + " ";
 }
 ASSERT_EQ(output, "Hello - 1 World - 2 ");
@@ -67,7 +67,7 @@ ASSERT_EQ(output, "Hello - 1 World - 2 ");
 float fsum = 0;
 int isum = 0;
 // Will match entity2 and entity3
-for (auto [intVal, floatVal]: ecs.FilterEntities<int, float>()) {
+for (auto [intVal, floatVal]: ecs.GetSystem<int, float>()) {
     isum += intVal;
     fsum += floatVal;
 }

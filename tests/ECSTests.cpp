@@ -301,7 +301,7 @@ TEST(ECS, LoopOnceWithFilter) {
     ecs.Add(entity, 5);
     ecs.Add<std::string>(entity, "string");
     int count = 0;
-    for (auto [val1, val2]: ecs.FilterEntities<int, std::string>()) {
+    for (auto [val1, val2]: ecs.GetSystem<int, std::string>()) {
         ASSERT_EQ(val1, 5);
         ASSERT_EQ(val2, "string");
         count++;
@@ -332,7 +332,7 @@ TEST(ECS, LoopMultipleWithFilter) {
 
     {
         int count = 0;
-        for (auto [val1, val2]: ecs.FilterEntities<int, std::string>()) {
+        for (auto [val1, val2]: ecs.GetSystem<int, std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 2);
@@ -340,7 +340,7 @@ TEST(ECS, LoopMultipleWithFilter) {
 
     {
         int count = 0;
-        for (auto [val]: ecs.FilterEntities<int>()) {
+        for (auto [val]: ecs.GetSystem<int>()) {
             count++;
         }
         ASSERT_EQ(count, 3);
@@ -348,7 +348,7 @@ TEST(ECS, LoopMultipleWithFilter) {
 
     {
         int count = 0;
-        for (auto [val]: ecs.FilterEntities<std::string>()) {
+        for (auto [val]: ecs.GetSystem<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 3);
@@ -368,12 +368,12 @@ TEST(ECS, RemoveEntityAndLoop) {
 
     {
         int count = 0;
-        for (auto [val]: ecs.FilterEntities<std::string>()) {
+        for (auto [val]: ecs.GetSystem<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 2);
 
-        auto filter = ecs.FilterEntities<std::string>();
+        auto filter = ecs.GetSystem<std::string>();
         std::for_each(filter.begin(), filter.end(), [&](const auto &it) {
             auto [val] = it;
             count++;
@@ -384,7 +384,7 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<std::string>(entity2);
     {
         int count = 0;
-        for (auto [val]: ecs.FilterEntities<std::string>()) {
+        for (auto [val]: ecs.GetSystem<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 1);
@@ -393,7 +393,7 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<int>(entity);
     {
         int count = 0;
-        for (auto [val]: ecs.FilterEntities<int>()) {
+        for (auto [val]: ecs.GetSystem<int>()) {
             count++;
         }
         ASSERT_EQ(count, 1);
@@ -402,7 +402,7 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<int>(entity3);
     {
         int count = 0;
-        for (auto [val]: ecs.FilterEntities<int>()) {
+        for (auto [val]: ecs.GetSystem<int>()) {
             count++;
         }
         ASSERT_EQ(count, 0);
@@ -411,7 +411,7 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<std::string>(entity);
     {
         int count = 0;
-        for (auto [val]: ecs.FilterEntities<std::string>()) {
+        for (auto [val]: ecs.GetSystem<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 0);
@@ -440,7 +440,7 @@ TEST(ECS, ReadmeShowcase) {
 
 // Will match entity1 and entity2
     std::string output;
-    for (auto [strVal, intVal]: ecs.FilterEntities<std::string, int>()) {
+    for (auto [strVal, intVal]: ecs.GetSystem<std::string, int>()) {
         output += strVal + " - " + std::to_string(intVal) + " ";
     }
     ASSERT_EQ(output, "Hello - 1 World - 2 ");
@@ -448,7 +448,7 @@ TEST(ECS, ReadmeShowcase) {
     float fsum = 0;
     int isum = 0;
 // Will match entity2 and entity3
-    for (auto [intVal, floatVal]: ecs.FilterEntities<int, float>()) {
+    for (auto [intVal, floatVal]: ecs.GetSystem<int, float>()) {
         isum += intVal;
         fsum += floatVal;
     }

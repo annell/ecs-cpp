@@ -74,8 +74,9 @@ namespace ecs {
 
         template<typename... TFilterComponents>
         struct Filter {
+        private:
             using TFilterIterator = FilterIterator<TFilterComponents...>;
-
+        public:
             explicit Filter(TECSManager &ecs) : ecs(ecs) {}
             [[nodiscard]] TFilterIterator begin() {
                 auto endIt = ecs.end();
@@ -172,18 +173,17 @@ namespace ecs {
             return entities.begin() + endSlot;
         }
 
-        template<typename ... TMatchingComponents>
-        Filter<TMatchingComponents...> FilterEntities() {
-            return Filter<TMatchingComponents...>(*this);
-        }
-
         template<typename TComponent>
         [[nodiscard]] bool IsComponentActive(const ComponentsActive &components) const {
             return std::get<ComponentActive<TComponent>>(components).active;
         }
 
-    private:
+        template<typename ... TSystemComponents>
+        [[nodiscard]] Filter<TSystemComponents...> GetSystem() {
+            return Filter<TSystemComponents...>(*this);
+        }
 
+    private:
         inline void InitializeEntities() {
             int id = 0;
             for (auto &entity : entities) {
