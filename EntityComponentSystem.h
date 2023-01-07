@@ -28,6 +28,7 @@ namespace ecs {
     template<typename... TComponents>
     class ECSManager {
     public:
+        using TECSManager = ECSManager<TComponents...>;
         constexpr static int slots = 1024;
 
         template<typename TComponent>
@@ -46,6 +47,49 @@ namespace ecs {
             EntityID id = EntityID(0);
         };
         using EntitiesSlots = std::array<Entity, slots>;
+
+        template<typename... TItComponents>
+        struct FilterIterator {
+        private:
+            using TInternalIterator = typename TECSManager::EntitiesSlots::const_iterator;
+        public:
+            FilterIterator(TECSManager &ecs, TInternalIterator it) : ecs(ecs), it(it) {}
+
+            auto operator*() const { return ecs.template GetSeveral<TItComponents ...>(it->id); }
+            FilterIterator &operator++() {
+                it++;
+                auto endIt = ecs.end();
+                while (it != endIt && (!it->isEntityActive || !ecs.template Has<TItComponents ...>(it->id))) {
+                    it++;
+                }
+                return *this;
+            }
+            friend bool operator==(const FilterIterator &a, const FilterIterator &b) { return a.it == b.it; };
+            friend bool operator!=(const FilterIterator &a, const FilterIterator &b) { return a.it != b.it; };
+
+        private:
+            TECSManager& ecs;
+            TInternalIterator it;
+        };
+
+        template<typename... TFilterComponents>
+        struct Filter {
+            using TFilterIterator = FilterIterator<TFilterComponents...>;
+
+            explicit Filter(TECSManager &ecs) : ecs(ecs) {}
+            [[nodiscard]] TFilterIterator begin() {
+                auto endIt = ecs.end();
+                auto it = ecs.begin();
+                while (it != endIt && (!it->isEntityActive || !ecs.template Has<TFilterComponents ...>(it->id))) {
+                    it++;
+                }
+                return TFilterIterator(ecs, it);
+            }
+            [[nodiscard]] TFilterIterator end() { return TFilterIterator(ecs, ecs.end()); }
+
+        private:
+            TECSManager& ecs;
+        };
 
         ECSManager() {
             InitializeEntities();
@@ -128,6 +172,11 @@ namespace ecs {
             return entities.begin() + endSlot;
         }
 
+        template<typename ... TMatchingComponents>
+        Filter<TMatchingComponents...> FilterEntities() {
+            return Filter<TMatchingComponents...>(*this);
+        }
+
         template<typename TComponent>
         [[nodiscard]] bool IsComponentActive(const ComponentsActive &components) const {
             return std::get<ComponentActive<TComponent>>(components).active;
@@ -200,48 +249,5 @@ namespace ecs {
         size_t endSlot = 0;
         EntitiesSlots entities;
         ComponentArrays componentArrays{};
-    };
-
-    template<typename TECSManager, typename... TComponents>
-    struct FilterIterator {
-    private:
-        using TInternalIterator = typename TECSManager::EntitiesSlots::const_iterator;
-    public:
-        FilterIterator(TECSManager &ecs, TInternalIterator it) : ecs(ecs), it(it) {}
-
-        auto operator*() const { return ecs.template GetSeveral<TComponents ...>(it->id); }
-        FilterIterator &operator++() {
-            it++;
-            auto endIt = ecs.end();
-            while (it != endIt && (!it->isEntityActive || !ecs.template Has<TComponents ...>(it->id))) {
-                it++;
-            }
-            return *this;
-        }
-        friend bool operator==(const FilterIterator &a, const FilterIterator &b) { return a.it == b.it; };
-        friend bool operator!=(const FilterIterator &a, const FilterIterator &b) { return a.it != b.it; };
-
-    private:
-        TECSManager& ecs;
-        TInternalIterator it;
-    };
-
-    template<typename TECSManager, typename... TComponents>
-    struct Filter {
-        using TFilterIterator = FilterIterator<TECSManager, TComponents...>;
-
-        explicit Filter(TECSManager &ecs) : ecs(ecs) {}
-        [[nodiscard]] TFilterIterator begin() {
-            auto endIt = ecs.end();
-            auto it = ecs.begin();
-            while (it != endIt && (!it->isEntityActive || !ecs.template Has<TComponents ...>(it->id))) {
-                it++;
-            }
-            return TFilterIterator(ecs, it);
-        }
-        [[nodiscard]] TFilterIterator end() { return TFilterIterator(ecs, ecs.end()); }
-
-    private:
-        TECSManager& ecs;
     };
 }// namespace ecs

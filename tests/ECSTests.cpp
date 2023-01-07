@@ -241,9 +241,9 @@ TEST(ECS, GetMultiple) {
     ecs.Add(entity, std::string("strrr"));
     result = ecs.Has<int, std::string>(entity);
     ASSERT_TRUE(result);
-    auto data = ecs.GetSeveral<int, std::string>(entity);
-    ASSERT_EQ(std::get<int &>(data), 1);
-    ASSERT_EQ(std::get<std::string &>(data), "strrr");
+    auto [data1, data2] = ecs.GetSeveral<int, std::string>(entity);
+    ASSERT_EQ(data1, 1);
+    ASSERT_EQ(data2, "strrr");
 }
 
 TEST(ECS, LoopEntities) {
@@ -301,7 +301,7 @@ TEST(ECS, LoopOnceWithFilter) {
     ecs.Add(entity, 5);
     ecs.Add<std::string>(entity, "string");
     int count = 0;
-    for (auto [val1, val2] : ecs::Filter<ecs::ECSManager<int, std::string>, int, std::string>(ecs)) {
+    for (auto [val1, val2] : ecs.FilterEntities<int, std::string>()) {
         ASSERT_EQ(val1, 5);
         ASSERT_EQ(val2, "string");
         count++;
@@ -332,7 +332,7 @@ TEST(ECS, LoopMultipleWithFilter) {
 
     {
         int count = 0;
-        for (auto [val1, val2] : ecs::Filter<ecs::ECSManager<int, std::string>, int, std::string>(ecs)) {
+        for (auto [val1, val2] : ecs.FilterEntities<int, std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 2);
@@ -340,7 +340,7 @@ TEST(ECS, LoopMultipleWithFilter) {
 
     {
         int count = 0;
-        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, int>(ecs)) {
+        for (auto [val] : ecs.FilterEntities<int>()) {
             count++;
         }
         ASSERT_EQ(count, 3);
@@ -348,7 +348,7 @@ TEST(ECS, LoopMultipleWithFilter) {
 
     {
         int count = 0;
-        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, std::string>(ecs)) {
+        for (auto [val] : ecs.FilterEntities<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 3);
@@ -356,7 +356,8 @@ TEST(ECS, LoopMultipleWithFilter) {
 }
 
 TEST(ECS, RemoveEntityAndLoop) {
-    ecs::ECSManager<int, std::string> ecs;
+    using ECSContainer = ecs::ECSManager<int, std::string>;
+    ECSContainer ecs;
     auto entity = ecs.MakeEntity();
     ecs.Add(entity, 5);
     ecs.Add<std::string>(entity, "one");
@@ -367,16 +368,23 @@ TEST(ECS, RemoveEntityAndLoop) {
 
     {
         int count = 0;
-        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, std::string>(ecs)) {
+        for (auto [val] : ecs.FilterEntities<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 2);
+
+        auto filter = ecs.FilterEntities<std::string>();
+        std::for_each(filter.begin(), filter.end(), [&] (const auto& it) {
+            auto [val] = it;
+            count++;
+        });
+        ASSERT_EQ(count, 4);
     }
 
     ecs.Remove<std::string>(entity2);
     {
         int count = 0;
-        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, std::string>(ecs)) {
+        for (auto [val] : ecs.FilterEntities<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 1);
@@ -385,7 +393,7 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<int>(entity);
     {
         int count = 0;
-        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, int>(ecs)) {
+        for (auto [val] : ecs.FilterEntities<int>()) {
             count++;
         }
         ASSERT_EQ(count, 1);
@@ -394,7 +402,7 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<int>(entity3);
     {
         int count = 0;
-        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, int>(ecs)) {
+        for (auto [val] : ecs.FilterEntities<int>()) {
             count++;
         }
         ASSERT_EQ(count, 0);
@@ -403,12 +411,14 @@ TEST(ECS, RemoveEntityAndLoop) {
     ecs.Remove<std::string>(entity);
     {
         int count = 0;
-        for (auto [val] : ecs::Filter<ecs::ECSManager<int, std::string>, std::string>(ecs)) {
+        for (auto [val] : ecs.FilterEntities<std::string>()) {
             count++;
         }
         ASSERT_EQ(count, 0);
     }
 }
+
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
