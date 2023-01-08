@@ -246,7 +246,7 @@ TEST(ECS, LoopEntities) {
         int callCount = 0;
         for (auto &e: ecs) {
             callCount++;
-            auto [i, str] = e.componentsActive;
+            auto [i, str] = e.activeComponents;
             EXPECT_EQ(e.id, entity);
             EXPECT_FALSE(str.active);
             EXPECT_TRUE(i.active);
@@ -262,7 +262,7 @@ TEST(ECS, LoopEntities) {
         for (auto &e: ecs) {
             callCount++;
             if (e.id == entity) {
-                auto [str, i] = e.componentsActive;
+                auto [str, i] = e.activeComponents;
                 EXPECT_TRUE(str.active);
                 EXPECT_TRUE(i.active);
                 auto result = ecs.Has<int, std::string>(e.id);

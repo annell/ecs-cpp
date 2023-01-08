@@ -39,7 +39,7 @@ namespace ecs {
     * Initialized with a list of components to track:
     * ECSManager<TComponent1, TComponent2>()
     *
-    * Has place for up to 1024 entities.
+    * Has place for up to NRSLOTS = 1024 entities.
     *
     * Add, Remove, Has got both entity and component
     * interfaces to be able to interact with both easily
@@ -55,28 +55,29 @@ namespace ecs {
     class ECSManager {
     public:
         using TECSManager = ECSManager<TComponents...>;
-        constexpr static int slots = 1024;
+        constexpr static int NRSLOTS = 1024;
 
         template<typename TComponent>
-        using ComponentArray = std::array<TComponent, slots>;
-        using ComponentArrays = std::tuple<ComponentArray<TComponents>...>;
+        using ComponentArray = std::array<TComponent, NRSLOTS>;
+        using ComponentMatrix = std::tuple<ComponentArray<TComponents>...>;
 
-        template<typename TComponent>
-        struct ComponentActive {
+        template<typename /*TComponent*/>
+        struct AvailableComponent {
             bool active = false;
         };
-        using ComponentsActive = std::tuple<ComponentActive<TComponents>...>;
+        using AvailableComponents = std::tuple<AvailableComponent<TComponents>...>;
 
         /**
          * Entity
-         * ID class of a Entity.
+         * The entity in the ECS, tracks its own ID if it is
+         * active and if it has any components added to it.
          */
         struct Entity {
-            ComponentsActive componentsActive{};
-            bool isEntityActive = false;
+            AvailableComponents activeComponents{};
+            bool active = false;
             EntityID id = EntityID(0);
         };
-        using EntitiesSlots = std::array<Entity, slots>;
+        using EntitiesSlots = std::array<Entity, NRSLOTS>;
 
         /**
          * SystemIterator
@@ -98,7 +99,7 @@ namespace ecs {
             SystemIterator &operator++() {
                 it++;
                 auto endIt = ecs.end();
-                while (it != endIt && (!it->isEntityActive || !ecs.template Has<TSystemComponents ...>(it->id))) {
+                while (it != endIt && (!it->active || !ecs.template Has<TSystemComponents ...>(it->id))) {
                     it++;
                 }
                 return *this;
@@ -119,25 +120,36 @@ namespace ecs {
          * SystemIterators that a user can use to loop over the
          * components.
          *
-         * @tparam TFilterComponents components to filter on.
+         * @tparam TSystemComponents components to filter on.
          */
-        template<typename... TFilterComponents>
+        template<typename... TSystemComponents>
         struct System {
         private:
-            using TFilterIterator = SystemIterator<TFilterComponents...>;
+            using TSystemIterator = SystemIterator<TSystemComponents...>;
         public:
             explicit System(TECSManager &ecs) : ecs(ecs) {}
 
-            [[nodiscard]] TFilterIterator begin() const {
+            /**
+             * Returns a iterator to the first value in the system.
+             * Will match the components and skip over if entity
+             * does not have the correct components.
+             * @return TSystemIterator with a references to component data.
+             */
+            [[nodiscard]] TSystemIterator begin() const {
                 auto endIt = ecs.end();
                 auto it = ecs.begin();
-                while (it != endIt && (!it->isEntityActive || !ecs.template Has<TFilterComponents ...>(it->id))) {
+                while (it != endIt && (!it->active || !ecs.template Has<TSystemComponents ...>(it->id))) {
                     it++;
                 }
-                return TFilterIterator(ecs, it);
+                return TSystemIterator(ecs, it);
             }
 
-            [[nodiscard]] TFilterIterator end() const { return TFilterIterator(ecs, ecs.end()); }
+
+            /**
+             * Returns a iterator to end value in the system.
+             * @return TSystemIterator to end iterator.
+             */
+            [[nodiscard]] TSystemIterator end() const { return TSystemIterator(ecs, ecs.end()); }
 
         private:
             TECSManager &ecs;
@@ -153,8 +165,8 @@ namespace ecs {
          */
         [[nodiscard]] inline EntityID Add() {
             auto &entity = GetEntity(endSlot++);
-            entity.isEntityActive = true;
-            std::apply([](auto &&...args) { ((args.active = false), ...); }, entity.componentsActive);
+            entity.active = true;
+            std::apply([](auto &&...args) { ((args.active = false), ...); }, entity.activeComponents);
             return entity.id;
         }
 
@@ -182,10 +194,10 @@ namespace ecs {
          */
         inline void Remove(const EntityID &entityId) {
             auto &entity = GetEntity(entityId.GetId());
-            if (!entity.isEntityActive) {
+            if (!entity.active) {
                 throw std::logic_error("Entity not active!");
             }
-            entity.isEntityActive = false;
+            entity.active = false;
             if (GetLastSlot() == entity.id.GetId()) {
                 endSlot--;
             }
@@ -212,10 +224,10 @@ namespace ecs {
          * @return bool if entity is active.
          */
         [[nodiscard]] inline bool Has(const EntityID &entityId) const {
-            if (entityId.GetId() >= slots) {
+            if (entityId.GetId() >= NRSLOTS) {
                 throw std::out_of_range("Trying to access out of bounds!");
             }
-            return entities[entityId.GetId()].isEntityActive;
+            return entities[entityId.GetId()].active;
         }
 
         /**
@@ -233,7 +245,7 @@ namespace ecs {
          * Returns a reference to the requested component data.
          * @tparam TComponent the type of the component
          * @param entityId reference to the entity.
-         * @return TComponent& refence to the component.
+         * @return TComponent& reference to the component.
          */
         template<typename TComponent>
         requires type_in<TComponent, TComponents...>
@@ -299,8 +311,8 @@ namespace ecs {
         }
 
         template<typename TEntityComponent>
-        [[nodiscard]] ComponentActive<TEntityComponent> &GetComponent(const EntityID &entityId) {
-            return std::get<ComponentActive<TEntityComponent>>(GetEntity(entityId.GetId()).componentsActive);
+        [[nodiscard]] AvailableComponent<TEntityComponent> &GetComponent(const EntityID &entityId) {
+            return std::get<AvailableComponent<TEntityComponent>>(GetEntity(entityId.GetId()).activeComponents);
         }
 
         [[nodiscard]] inline Entity &GetEntity(size_t index) {
@@ -309,8 +321,8 @@ namespace ecs {
         }
 
         template<typename TEntityComponent>
-        [[nodiscard]] const ComponentActive<TEntityComponent> &ReadComponent(const EntityID &entityId) const {
-            return std::get<ComponentActive<TEntityComponent>>(ReadEntity(entityId.GetId()).componentsActive);
+        [[nodiscard]] const AvailableComponent<TEntityComponent> &ReadComponent(const EntityID &entityId) const {
+            return std::get<AvailableComponent<TEntityComponent>>(ReadEntity(entityId.GetId()).activeComponents);
         }
 
         [[nodiscard]] inline const Entity &ReadEntity(size_t index) const {
@@ -335,8 +347,8 @@ namespace ecs {
             if (index >= endSlot) {
                 throw std::out_of_range("Accessing outside of endSlot!");
             }
-            if (endSlot >= slots) {
-                throw std::out_of_range("Used up all slots!");
+            if (endSlot >= NRSLOTS) {
+                throw std::out_of_range("Used up all NRSLOTS!");
             }
         }
 
@@ -349,6 +361,6 @@ namespace ecs {
 
         size_t endSlot = 0;
         EntitiesSlots entities;
-        ComponentArrays componentArrays{};
+        ComponentMatrix componentArrays{};
     };
 }// namespace ecs
