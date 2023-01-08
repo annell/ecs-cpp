@@ -42,7 +42,7 @@ namespace ecs {
     * Initialized with a list of components to track:
     * ECSManager<TComponent1, TComponent2>()
     *
-    * Has place for up to NRSLOTS = 1024 entities.
+    * Has place for up to NumberOfSlots = 1024 entities.
     *
     * Add, Remove, Has got both entity and component
     * interfaces to be able to interact with both easily
@@ -59,10 +59,10 @@ namespace ecs {
     class ECSManager {
     public:
         using TECSManager = ECSManager<TComponents...>;
-        constexpr static int NRSLOTS = 1024;
+        constexpr static int NumberOfSlots = 1024;
 
         template<typename TComponent>
-        using ComponentArray = std::array<TComponent, NRSLOTS>;
+        using ComponentArray = std::array<TComponent, NumberOfSlots>;
         using ComponentMatrix = std::tuple<ComponentArray<TComponents>...>;
 
         template<typename /*TComponent*/>
@@ -81,7 +81,7 @@ namespace ecs {
             bool active = false;
             EntityID id = EntityID(0);
         };
-        using EntitiesSlots = std::array<Entity, NRSLOTS>;
+        using EntitiesSlots = std::array<Entity, NumberOfSlots>;
 
         /**
          * SystemIterator
@@ -232,7 +232,7 @@ namespace ecs {
          * @return bool if entity is active.
          */
         [[nodiscard]] inline bool Has(const EntityID &entityId) const {
-            if (entityId.GetId() >= NRSLOTS) {
+            if (entityId.GetId() >= NumberOfSlots) {
                 throw std::out_of_range("Trying to access out of bounds!");
             }
             return entities[entityId.GetId()].active;
@@ -347,8 +347,8 @@ namespace ecs {
             if (index >= endSlot) {
                 throw std::out_of_range("Accessing outside of endSlot!");
             }
-            if (endSlot >= NRSLOTS) {
-                throw std::out_of_range("Used up all NRSLOTS!");
+            if (endSlot >= NumberOfSlots) {
+                throw std::out_of_range("Used up all NumberOfSlots!");
             }
         }
 
