@@ -208,6 +208,7 @@ TEST(ECS, RemoveCleanupComponents) {
     ASSERT_FALSE(ecs.Has(entity));
 
     ASSERT_THROW(ecs.Remove(entity), std::logic_error);
+    ASSERT_EQ(ecs.Size(), 0);
 
     ecs::EntityID entity2 = ecs.Add();
     ASSERT_EQ(ecs.Size(), 1);
@@ -470,6 +471,87 @@ TEST(ECS, FindInSystem) {
     ASSERT_TRUE(it != system.end());
     auto [intVal, strVal] = *it;
     ASSERT_EQ(intVal, 3);
+}
+
+TEST(ECS, DefaultConstrutableConcept) {
+    struct DefaultConstrutable {
+        int val = 0;
+        float bla = 0.0f;
+    };
+
+    struct NotDefaultConstrutable {
+        NotDefaultConstrutable() = delete;
+        NotDefaultConstrutable(int val, float bla) : val(val), bla(bla) {}
+        int val = 0;
+        float bla = 0.0f;
+    };
+
+    static_assert(ecs::types_is_default_constructable<DefaultConstrutable>);
+    static_assert(not ecs::types_is_default_constructable<DefaultConstrutable, NotDefaultConstrutable>);
+}
+
+TEST(ECS, FillHoleTest) {
+    ecs::ECSManager<int> ecs;
+    auto e1 = ecs.Add();
+    auto e2 = ecs.Add();
+    auto e3 = ecs.Add();
+
+    ASSERT_EQ(e1.GetId(), 0);
+    ASSERT_EQ(e2.GetId(), 1);
+    ASSERT_EQ(e3.GetId(), 2);
+
+    // Create a hole in the list of entities
+    ecs.Remove(e2);
+    ASSERT_EQ(ecs.Size(), 2);
+    EXPECT_THROW(ecs.Remove(e2), std::logic_error);
+    ASSERT_EQ(ecs.Size(), 2);
+
+    // The hole should be filled
+    auto e4 = ecs.Add();
+    ASSERT_EQ(e4.GetId(), 1);
+}
+
+TEST(ECS, FillBigHoleTest) {
+    ecs::ECSManager<int> ecs;
+    auto e1 = ecs.Add();
+    auto e2 = ecs.Add();
+    auto e3 = ecs.Add();
+    auto e4 = ecs.Add();
+    auto e5 = ecs.Add();
+
+    ASSERT_EQ(e1.GetId(), 0);
+    ASSERT_EQ(e2.GetId(), 1);
+    ASSERT_EQ(e3.GetId(), 2);
+    ASSERT_EQ(e4.GetId(), 3);
+    ASSERT_EQ(e5.GetId(), 4);
+    ASSERT_EQ(ecs.Size(), 5);
+
+    // Create a hole in the list of entities
+    ecs.Remove(e2);
+    ecs.Remove(e3);
+    ecs.Remove(e4);
+
+    ASSERT_EQ(ecs.Size(), 2);
+
+    // The hole should be filled
+    auto e6 = ecs.Add();
+    ASSERT_EQ(e6.GetId(), 1);
+    auto e7 = ecs.Add();
+    ASSERT_EQ(e7.GetId(), 2);
+    auto e8 = ecs.Add();
+    ASSERT_EQ(e8.GetId(), 3);
+
+    // Remove and fill first;
+    ecs.Remove(e1);
+    auto e9 = ecs.Add();
+    ASSERT_EQ(e9.GetId(), 0);
+
+    // Remove and fill last;
+    ecs.Remove(e5);
+    auto e10 = ecs.Add();
+    ASSERT_EQ(e10.GetId(), 4);
+
+    ASSERT_EQ(ecs.Size(), 5);
 }
 
 int main(int argc, char **argv) {

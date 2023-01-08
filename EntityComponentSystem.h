@@ -31,6 +31,9 @@ namespace ecs {
     template<typename TypeToCheck, typename... TypesToCheckAgainst>
     concept type_in = (std::same_as<std::remove_cvref_t<TypeToCheck>, TypesToCheckAgainst> || ...);
 
+    template<typename... TypesToCheck>
+    concept types_is_default_constructable = (std::is_default_constructible<TypesToCheck>::value && ...);
+
     /**
     * ECSManager
     * A ECS container that keeps track of all components
@@ -52,6 +55,7 @@ namespace ecs {
      * @tparam TComponents list of components that ECS tracks.
      */
     template<typename... TComponents>
+    requires types_is_default_constructable<TComponents...>
     class ECSManager {
     public:
         using TECSManager = ECSManager<TComponents...>;
@@ -92,7 +96,7 @@ namespace ecs {
         private:
             using TInternalIterator = typename TECSManager::EntitiesSlots::const_iterator;
         public:
-            SystemIterator(TECSManager &ecs, TInternalIterator it) : ecs(ecs), it(it) {}
+            [[maybe_unused]] SystemIterator(TECSManager &ecs, TInternalIterator it) : ecs(ecs), it(it) {}
 
             auto operator*() const { return ecs.template GetSeveral<TSystemComponents ...>(it->id); }
 
@@ -119,7 +123,6 @@ namespace ecs {
          * A class that takes a ECS as input and creates
          * SystemIterators that a user can use to loop over the
          * components.
-         *
          * @tparam TSystemComponents components to filter on.
          */
         template<typename... TSystemComponents>
@@ -156,7 +159,10 @@ namespace ecs {
         };
 
         ECSManager() {
-            InitializeEntities();
+            int id = 0;
+            for (auto &entity: entities) {
+                entity.id = EntityID(id++);
+            }
         }
 
         /**
@@ -164,15 +170,16 @@ namespace ecs {
          * @return EntityID
          */
         [[nodiscard]] inline EntityID Add() {
-            auto &entity = GetEntity(endSlot++);
+            auto slot = GetFirstEmptySlot();
+            auto &entity = GetEntity(slot);
             entity.active = true;
             std::apply([](auto &&...args) { ((args.active = false), ...); }, entity.activeComponents);
+            nrEntities++;
             return entity.id;
         }
 
         /**
          * Adds a new component to a entity.
-         *
          * @tparam TComponent type of the new component.
          * @param entityId reference to the entity.
          * @param component the data of the component.
@@ -201,6 +208,7 @@ namespace ecs {
             if (GetLastSlot() == entity.id.GetId()) {
                 endSlot--;
             }
+            nrEntities--;
         }
 
         /**
@@ -210,7 +218,7 @@ namespace ecs {
          */
         template<typename TComponent>
         requires type_in<TComponent, TComponents...>
-        inline void Remove(const EntityID &entityId) {
+        void Remove(const EntityID &entityId) {
             auto &isActive = GetComponent<TComponent>(entityId).active;
             if (!isActive) {
                 throw std::logic_error("Component not active!");
@@ -256,7 +264,6 @@ namespace ecs {
             return GetComponentData<TComponent>(entityId);
         }
 
-
         /**
          * Returns a system which is a list of a set of components.
          * @tparam TSystemComponents the list of components in the system.
@@ -272,7 +279,7 @@ namespace ecs {
          * @return size_t
          */
         [[nodiscard]] size_t Size() const {
-            return endSlot;
+            return nrEntities;
         }
 
         /**
@@ -295,13 +302,6 @@ namespace ecs {
         template<typename... TComponentsRequested>
         [[nodiscard]] auto GetSeveral(const EntityID &entityId) {
             return std::forward_as_tuple(Get<TComponentsRequested>(entityId)...);
-        }
-
-        inline void InitializeEntities() {
-            int id = 0;
-            for (auto &entity: entities) {
-                entity.id = EntityID(id++);
-            }
         }
 
         template<typename TEntityComponent>
@@ -352,6 +352,17 @@ namespace ecs {
             }
         }
 
+        size_t GetFirstEmptySlot() {
+            size_t slot = 0;
+            while (slot < endSlot && entities[slot].active) {
+                slot++;
+            }
+            if (slot == endSlot) {
+                endSlot++;
+            }
+            return slot;
+        }
+
         [[nodiscard]] size_t GetLastSlot() const {
             if (endSlot == 0) {
                 return 0;
@@ -360,6 +371,7 @@ namespace ecs {
         }
 
         size_t endSlot = 0;
+        size_t nrEntities = 0;
         EntitiesSlots entities;
         ComponentMatrix componentArrays{};
     };
