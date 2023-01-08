@@ -54,8 +54,7 @@ namespace ecs {
     * requested components and allows for easy iteration.
      * @tparam TComponents list of components that ECS tracks.
      */
-    template<typename... TComponents>
-    requires types_is_default_constructable<TComponents...>
+    template<types_is_default_constructable... TComponents>
     class ECSManager {
     public:
         using TECSManager = ECSManager<TComponents...>;
@@ -184,8 +183,7 @@ namespace ecs {
          * @param entityId reference to the entity.
          * @param component the data of the component.
          */
-        template<typename TComponent>
-        requires type_in<TComponent, TComponents...>
+        template<type_in<TComponents...> TComponent>
         void Add(const EntityID &entityId, const TComponent &component) {
             auto &isActive = GetComponent<TComponent>(entityId).active;
             if (isActive) {
@@ -216,8 +214,7 @@ namespace ecs {
          * @tparam TComponent type of the component to remove
          * @param entityId reference to the entity.
          */
-        template<typename TComponent>
-        requires type_in<TComponent, TComponents...>
+        template<type_in<TComponents...> TComponent>
         void Remove(const EntityID &entityId) {
             auto &isActive = GetComponent<TComponent>(entityId).active;
             if (!isActive) {
@@ -255,8 +252,7 @@ namespace ecs {
          * @param entityId reference to the entity.
          * @return TComponent& reference to the component.
          */
-        template<typename TComponent>
-        requires type_in<TComponent, TComponents...>
+        template<type_in<TComponents...> TComponent>
         [[nodiscard]] TComponent &Get(const EntityID &entityId) {
             if (!ReadComponent<TComponent>(entityId).active) {
                 throw std::invalid_argument("Bad access, component not present on this entity.");
@@ -304,8 +300,7 @@ namespace ecs {
             return std::forward_as_tuple(Get<TComponentsRequested>(entityId)...);
         }
 
-        template<typename TEntityComponent>
-        requires type_in<TEntityComponent, TComponents...>
+        template<type_in<TComponents...> TEntityComponent>
         [[nodiscard]] bool HasInternal(const EntityID &entityId) const {
             return ReadComponent<TEntityComponent>(entityId).active;
         }
@@ -330,15 +325,13 @@ namespace ecs {
             return entities[index];
         }
 
-        template<typename TComponent>
-        requires type_in<TComponent, TComponents...>
+        template<type_in<TComponents...> TComponent>
         [[nodiscard]] TComponent &GetComponentData(const EntityID &entityId) {
             ValidateID(entityId.GetId());
             return GetComponentDataArray<TComponent>()[entityId.GetId()];
         }
 
-        template<typename TComponent>
-        requires type_in<TComponent, TComponents...>
+        template<type_in<TComponents...> TComponent>
         [[nodiscard]] ComponentArray<TComponent> &GetComponentDataArray() {
             return std::get<ComponentArray<TComponent>>(componentArrays);
         }
