@@ -4,6 +4,7 @@
 
 #include "EntityComponentSystem.h"
 #include <gtest/gtest.h>
+#include <future>
 
 TEST(ECS, Add) {
     ecs::ECSManager<int, std::string> ecs;
@@ -552,6 +553,47 @@ TEST(ECS, FillBigHoleTest) {
     ASSERT_EQ(e10.GetId(), 4);
 
     ASSERT_EQ(ecs.Size(), 5);
+}
+
+TEST(ECS, ReuseSlots) {
+    ecs::ECSManager<int> ecs;
+
+    // Will go out of bounds and throw if slots aren't reused.
+    for (int i = 0; i < 100000; i++) {
+        auto entity = ecs.Add();
+        ecs.Remove(entity);
+    }
+}
+
+TEST(ECS, ConcurencySystem) {
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 1023; i++) {
+        auto val = ecs.Add();
+    }
+
+    for (auto [i, f] : ecs.GetSystem<int, float>()) {
+        i = 42;
+        f = 3.14;
+    }
+
+    std::vector<std::future<void>> results;
+
+    auto task = [](auto tuple) {
+        auto [i, f] = tuple;
+        i += 12;
+        f = 2;
+    };
+    for (auto tuple : ecs.GetSystem<int, float>()) {
+        results.push_back(std::async(std::launch::async, task, tuple));
+    }
+
+    for (const auto& future : results) {
+        future.wait();
+    }
+    for (auto [i, f] : ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 54);
+        ASSERT_EQ(f, 2);
+    }
 }
 
 int main(int argc, char **argv) {

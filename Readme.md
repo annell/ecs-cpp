@@ -15,10 +15,12 @@ From [Wikipedia](https://en.wikipedia.org/wiki/Entity_component_system):
 
 ## Features
 - Header only library for easy integration.
-- Arena memory allocator of the components.
+- Arena memory allocator of the components allocated on the stack.
 - Quick iteration over entities due to it being efficiently packed which reduces cache misses.
 - Dynamic adding / removing of components.
-- Heavy use of templates and requirements to make misuse of library harder.
+- Heavy use of templates and concepts to make misuse of library harder and error message clearer.
+- Safe concurrent processing of systems.
+- Extensive unit testing of library.
 
 ## Using this ECS
 Create a container, components it should handle are coded in upfront:
@@ -75,11 +77,23 @@ ASSERT_EQ(fsum, 10.0f);
 ASSERT_EQ(isum, 5);
 ```
 
-## Dependencies
-- C++20
-- Conan
+# To install
+## Header only method
+1. Clone `EntityComponentSystem.h` to your project and include header.
 
-## To install all dependencies
+### Dependencies
+- C++20
+
+## To run test suite
+1. Clone `EntityComponentSystem.h` to your project.
+2. Install dependencies.
+3. Include the CMakeList in your cmake structure.
+
+### Dependencies
+- C++20
+- GTest
+
+### To install all dependencies using Conan [optional]
 This library uses the PackageManager [Conan](https://conan.io) for its dependencies, and all dependencies can be found in `conantfile.txt`.
 1. Install conan `pip3 install conan`
 2. Go to the build folder that cmake generates.
