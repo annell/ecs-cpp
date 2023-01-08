@@ -19,7 +19,7 @@ TEST(ECS, Add) {
 TEST(ECS, MakeEntityOverflow) {
     ecs::ECSManager<int> ecs;
 
-    for (int i = 0; i < 1023; i++) {
+    for (int i = 0; i < ecs::ECSManager<>::NumberOfSlots - 1; i++) {
         auto entity = ecs.Add();
         ASSERT_EQ(entity.GetId(), i);
     }
@@ -482,7 +482,9 @@ TEST(ECS, DefaultConstrutableConcept) {
 
     struct NotDefaultConstrutable {
         NotDefaultConstrutable() = delete;
+
         NotDefaultConstrutable(int val, float bla) : val(val), bla(bla) {}
+
         int val = 0;
         float bla = 0.0f;
     };
@@ -567,11 +569,11 @@ TEST(ECS, ReuseSlots) {
 
 TEST(ECS, ConcurencySystem) {
     ecs::ECSManager<int, float> ecs;
-    for (int i = 0; i < 1023; i++) {
+    for (int i = 0; i < ecs::ECSManager<>::NumberOfSlots - 1; i++) {
         auto val = ecs.Add();
     }
 
-    for (auto [i, f] : ecs.GetSystem<int, float>()) {
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
         i = 42;
         f = 3.14;
     }
@@ -583,17 +585,71 @@ TEST(ECS, ConcurencySystem) {
         i += 12;
         f = 2;
     };
-    for (auto tuple : ecs.GetSystem<int, float>()) {
+    for (auto tuple: ecs.GetSystem<int, float>()) {
         results.push_back(std::async(std::launch::async, task, tuple));
     }
 
-    for (const auto& future : results) {
+    for (const auto &future: results) {
         future.wait();
     }
-    for (auto [i, f] : ecs.GetSystem<int, float>()) {
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
         ASSERT_EQ(i, 54);
         ASSERT_EQ(f, 2);
     }
+}
+
+TEST(ECS, LoopComparision) {
+    int count1 = 0;
+    int count2 = 0;
+    int nrRuns = 100;
+    for (int i = 0; i < nrRuns; i++) {
+
+        using namespace std::chrono;
+        struct obj {
+            int i = 5;
+            std::string bla = "hello";
+            std::optional<int> oi;
+            std::vector<int> ints = {1, 2, 3, 4, 5, 6};
+        };
+        struct ComplexObject {
+            int i = 0;
+            std::string str1 = "hello";
+            float f1 = 4251414.0f;
+            std::string str2 = "world";
+            float f2 = 4251414.0f;
+            obj o1;
+            obj o2;
+        };
+
+        ecs::ECSManager<ComplexObject> ecs;
+        std::array<ComplexObject, ecs::ECSManager<>::NumberOfSlots> a1;
+
+        for (int i = 0; i < ecs::ECSManager<>::NumberOfSlots - 1; i++) {
+            auto val = ecs.Add();
+            ecs.Add<ComplexObject>(val, {});
+            a1[i] = {};
+        }
+
+        auto start1 = high_resolution_clock::now();
+        for (auto &o: a1) {
+            o.i = 5;
+        }
+        auto end1 = high_resolution_clock::now();
+        auto duration1 = duration_cast<nanoseconds>(end1 - start1);
+
+        auto start2 = high_resolution_clock::now();
+        for (auto [o]: ecs.GetSystem<ComplexObject>()) {
+            o.i = 5;
+        }
+        auto end2 = high_resolution_clock::now();
+        auto duration2 = duration_cast<nanoseconds>(end2 - start2);
+
+        // ECS is about ~2-3 slower then a std::array on non trivial objects.
+        // On trivial objects its about 100 times slower.
+        count1 += duration1.count();
+        count2 += duration2.count();
+    }
+    //ASSERT_EQ(count1/nrRuns, count2/nrRuns);
 }
 
 int main(int argc, char **argv) {
