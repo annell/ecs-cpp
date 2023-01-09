@@ -489,8 +489,8 @@ TEST(ECS, DefaultConstrutableConcept) {
         float bla = 0.0f;
     };
 
-    static_assert(ecs::types_is_default_constructable<DefaultConstrutable>);
-    static_assert(not ecs::types_is_default_constructable<DefaultConstrutable, NotDefaultConstrutable>);
+    static_assert(std::default_initializable<DefaultConstrutable>);
+    static_assert(not std::default_initializable<NotDefaultConstrutable>);
 }
 
 TEST(ECS, FillHoleTest) {

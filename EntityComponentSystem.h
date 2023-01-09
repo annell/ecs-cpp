@@ -31,9 +31,6 @@ namespace ecs {
     template<typename TypeToCheck, typename... TypesToCheckAgainst>
     concept type_in = (std::same_as<std::remove_cvref_t<TypeToCheck>, TypesToCheckAgainst> || ...);
 
-    template<typename... TypesToCheck>
-    concept types_is_default_constructable = (std::is_default_constructible<TypesToCheck>::value && ...);
-
     /**
     * ECSManager
     * A ECS container that keeps track of all components
@@ -54,7 +51,7 @@ namespace ecs {
     * requested components and allows for easy iteration.
      * @tparam TComponents list of components that ECS tracks.
      */
-    template<types_is_default_constructable... TComponents>
+    template<std::default_initializable... TComponents>
     class ECSManager {
     public:
         using TECSManager = ECSManager<TComponents...>;
