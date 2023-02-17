@@ -154,25 +154,13 @@ namespace ecs {
             TECSManager &ecs;
         };
 
-        ECSManager() {
-            int id = 0;
-            for (auto &entity: entities) {
-                entity.id = EntityID(id++);
-            }
-        }
+        ECSManager();
 
         /**
          * Add a new entity to the ECS
          * @return EntityID
          */
-        [[nodiscard]] inline EntityID Add() {
-            auto slot = GetFirstEmptySlot();
-            auto &entity = GetEntity(slot);
-            entity.active = true;
-            std::apply([](auto &&...args) { ((args.active = false), ...); }, entity.activeComponents);
-            nrEntities++;
-            return entity.id;
-        }
+        [[nodiscard]] inline EntityID Add();
 
         /**
          * Adds a new component to a entity.
@@ -181,30 +169,13 @@ namespace ecs {
          * @param component the data of the component.
          */
         template<type_in<TComponents...> TComponent>
-        void Add(const EntityID &entityId, const TComponent &component) {
-            auto &isActive = GetComponent<TComponent>(entityId).active;
-            if (isActive) {
-                throw std::logic_error("Component already added!");
-            }
-            isActive = true;
-            GetComponentData<TComponent>(entityId) = component;
-        }
+        void Add(const EntityID &entityId, const TComponent &component);
 
         /**
          * Remove a entity from the ECS.
          * @param entityId reference to the entity.
          */
-        inline void Remove(const EntityID &entityId) {
-            auto &entity = GetEntity(entityId.GetId());
-            if (!entity.active) {
-                throw std::logic_error("Entity not active!");
-            }
-            entity.active = false;
-            if (GetLastSlot() == entity.id.GetId()) {
-                endSlot--;
-            }
-            nrEntities--;
-        }
+        inline void Remove(const EntityID &entityId);
 
         /**
          * Remove a component from a entity.
@@ -212,25 +183,14 @@ namespace ecs {
          * @param entityId reference to the entity.
          */
         template<type_in<TComponents...> TComponent>
-        void Remove(const EntityID &entityId) {
-            auto &isActive = GetComponent<TComponent>(entityId).active;
-            if (!isActive) {
-                throw std::logic_error("Component not active!");
-            }
-            isActive = false;
-        }
+        void Remove(const EntityID &entityId);
 
         /**
          * Checks if ecs has the given entity
          * @param entityId reference to the entity
          * @return bool if entity is active.
          */
-        [[nodiscard]] inline bool Has(const EntityID &entityId) const {
-            if (entityId.GetId() >= NumberOfSlots) {
-                throw std::out_of_range("Trying to access out of bounds!");
-            }
-            return entities[entityId.GetId()].active;
-        }
+        [[nodiscard]] inline bool Has(const EntityID &entityId) const;
 
         /**
          * Checks if the given entity has the components.
@@ -239,9 +199,7 @@ namespace ecs {
          * @return bool if component is active.
          */
         template<typename... TEntityComponents>
-        [[nodiscard]] bool Has(const EntityID &entityId) const {
-            return (HasInternal<TEntityComponents>(entityId) && ...);
-        }
+        [[nodiscard]] bool Has(const EntityID &entityId) const;
 
         /**
          * Returns a reference to the requested component data.
@@ -250,12 +208,7 @@ namespace ecs {
          * @return TComponent& reference to the component.
          */
         template<type_in<TComponents...> TComponent>
-        [[nodiscard]] TComponent &Get(const EntityID &entityId) {
-            if (!ReadComponent<TComponent>(entityId).active) {
-                throw std::invalid_argument("Bad access, component not present on this entity.");
-            }
-            return GetComponentData<TComponent>(entityId);
-        }
+        [[nodiscard]] TComponent &Get(const EntityID &entityId);
 
         /**
          * Returns a system which is a list of a set of components.
@@ -263,33 +216,25 @@ namespace ecs {
          * @return System<TSystemComponents...> the system of components.
          */
         template<typename ... TSystemComponents>
-        [[nodiscard]] System<TSystemComponents...> GetSystem() {
-            return System<TSystemComponents...>(*this);
-        }
+        [[nodiscard]] System<TSystemComponents...> GetSystem();
 
         /**
          * Returns number of entities in ECS
          * @return size_t
          */
-        [[nodiscard]] size_t Size() const {
-            return nrEntities;
-        }
+        [[nodiscard]] size_t Size() const;
 
         /**
          * Begin iterator, first element in entities list.
          * @return iterator to begin
          */
-        [[nodiscard]] typename EntitiesSlots::const_iterator begin() const {
-            return entities.begin();
-        }
+        [[nodiscard]] typename EntitiesSlots::const_iterator begin() const;
 
         /**
          * End iterator, after last element in entities list.
          * @return iterator to end
          */
-        [[nodiscard]] typename EntitiesSlots::const_iterator end() const {
-            return entities.begin() + endSlot;
-        }
+        [[nodiscard]] typename EntitiesSlots::const_iterator end() const;
 
     private:
         template<typename... TComponentsRequested>
@@ -365,4 +310,100 @@ namespace ecs {
         EntitiesSlots entities;
         ComponentMatrix componentArrays{};
     };
+
+    template<std::default_initializable... TComponents>
+    ECSManager<TComponents...>::ECSManager() {
+        int id = 0;
+        for (auto &entity: entities) {
+            entity.id = EntityID(id++);
+        }
+    }
+
+    template<std::default_initializable... TComponents>
+    EntityID ECSManager<TComponents...>::Add() {
+        auto slot = GetFirstEmptySlot();
+        auto &entity = GetEntity(slot);
+        entity.active = true;
+        std::apply([](auto &&...args) { ((args.active = false), ...); }, entity.activeComponents);
+        nrEntities++;
+        return entity.id;
+    }
+
+    template<std::default_initializable... TComponents>
+    template<type_in<TComponents...> TComponent>
+    void ECSManager<TComponents...>::Add(const EntityID &entityId, const TComponent &component) {
+        auto &isActive = GetComponent<TComponent>(entityId).active;
+        if (isActive) {
+            throw std::logic_error("Component already added!");
+        }
+        isActive = true;
+        GetComponentData<TComponent>(entityId) = component;
+    }
+
+    template<std::default_initializable... TComponents>
+    void ECSManager<TComponents...>::Remove(const EntityID &entityId) {
+        auto &entity = GetEntity(entityId.GetId());
+        if (!entity.active) {
+            throw std::logic_error("Entity not active!");
+        }
+        entity.active = false;
+        if (GetLastSlot() == entity.id.GetId()) {
+            endSlot--;
+        }
+        nrEntities--;
+    }
+
+    template<std::default_initializable... TComponents>
+    template<type_in<TComponents...> TComponent>
+    void ECSManager<TComponents...>::Remove(const EntityID &entityId) {
+        auto &isActive = GetComponent<TComponent>(entityId).active;
+        if (!isActive) {
+            throw std::logic_error("Component not active!");
+        }
+        isActive = false;
+    }
+
+    template<std::default_initializable... TComponents>
+    bool ECSManager<TComponents...>::Has(const EntityID &entityId) const {
+        if (entityId.GetId() >= NumberOfSlots) {
+            throw std::out_of_range("Trying to access out of bounds!");
+        }
+        return entities[entityId.GetId()].active;
+    }
+
+    template<std::default_initializable... TComponents>
+    template<typename... TEntityComponents>
+    bool ECSManager<TComponents...>::Has(const EntityID &entityId) const {
+        return (HasInternal<TEntityComponents>(entityId) && ...);
+    }
+
+    template<std::default_initializable... TComponents>
+    template<type_in<TComponents...> TComponent>
+    TComponent &ECSManager<TComponents...>::Get(const EntityID &entityId) {
+        if (!ReadComponent<TComponent>(entityId).active) {
+            throw std::invalid_argument("Bad access, component not present on this entity.");
+        }
+        return GetComponentData<TComponent>(entityId);
+    }
+
+    template<std::default_initializable... TComponents>
+    template<typename ... TSystemComponents>
+    typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystem() {
+        return System<TSystemComponents...>(*this);
+    }
+
+    template<std::default_initializable... TComponents>
+    size_t ECSManager<TComponents...>::Size() const {
+        return nrEntities;
+    }
+
+    template<std::default_initializable... TComponents>
+    [[nodiscard]] typename ECSManager<TComponents...>::EntitiesSlots::const_iterator ECSManager<TComponents...>::begin() const {
+        return entities.begin();
+    }
+
+    template<std::default_initializable... TComponents>
+    [[nodiscard]] typename ECSManager<TComponents...>::EntitiesSlots::const_iterator ECSManager<TComponents...>::end() const {
+        return entities.begin() + endSlot;
+    }
 }// namespace ecs
