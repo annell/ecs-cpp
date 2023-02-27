@@ -652,6 +652,21 @@ TEST(ECS, LoopComparision) {
     //ASSERT_EQ(count1/nrRuns, count2/nrRuns);
 }
 
+TEST(ECS, ConstrictedTypes) {
+    struct fooType {
+        fooType() = delete;
+        int bla = 5;
+    };
+    /**
+     * Produces compile errors from class requirements
+        ecs::ECSManager<fooType> defaultInitializable;
+        ecs::ECSManager<int&> ref;
+        ecs::ECSManager<int*> ptr;
+        ecs::ECSManager<const int> const;
+        ecs::ECSManager<volatile int> volatile;
+     */
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

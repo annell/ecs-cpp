@@ -31,6 +31,15 @@ namespace ecs {
     template<typename TypeToCheck, typename... TypesToCheckAgainst>
     concept type_in = (std::same_as<std::remove_cvref_t<TypeToCheck>, TypesToCheckAgainst> || ...);
 
+    template<typename ... TComponent>
+    concept IsBasicType = ((
+            std::default_initializable<TComponent> &&
+            not std::is_pointer_v<TComponent> &&
+            not std::is_reference_v<TComponent> &&
+            not std::is_const_v<TComponent> &&
+            not std::is_volatile_v<TComponent>) &&
+            ...);
+
     /**
     * ECSManager
     * A ECS container that keeps track of all components
@@ -50,8 +59,9 @@ namespace ecs {
     * it filters out the entities that contains the
     * requested components and allows for easy iteration.
      * @tparam TComponents list of components that ECS tracks.
+     * TComponents needs to fufill the IsBasicType concept.
      */
-    template<std::default_initializable... TComponents>
+    template<IsBasicType ... TComponents>
     class ECSManager {
     public:
         using TECSManager = ECSManager<TComponents...>;
@@ -311,7 +321,7 @@ namespace ecs {
         ComponentMatrix componentArrays{};
     };
 
-    template<std::default_initializable... TComponents>
+    template<IsBasicType... TComponents>
     ECSManager<TComponents...>::ECSManager() {
         int id = 0;
         for (auto &entity: entities) {
@@ -319,7 +329,7 @@ namespace ecs {
         }
     }
 
-    template<std::default_initializable... TComponents>
+    template<IsBasicType... TComponents>
     EntityID ECSManager<TComponents...>::Add() {
         auto slot = GetFirstEmptySlot();
         auto &entity = GetEntity(slot);
@@ -329,7 +339,7 @@ namespace ecs {
         return entity.id;
     }
 
-    template<std::default_initializable... TComponents>
+    template<IsBasicType... TComponents>
     template<type_in<TComponents...> TComponent>
     void ECSManager<TComponents...>::Add(const EntityID &entityId, const TComponent &component) {
         auto &isActive = GetComponent<TComponent>(entityId).active;
@@ -340,7 +350,7 @@ namespace ecs {
         GetComponentData<TComponent>(entityId) = component;
     }
 
-    template<std::default_initializable... TComponents>
+    template<IsBasicType... TComponents>
     void ECSManager<TComponents...>::Remove(const EntityID &entityId) {
         auto &entity = GetEntity(entityId.GetId());
         if (!entity.active) {
@@ -353,7 +363,7 @@ namespace ecs {
         nrEntities--;
     }
 
-    template<std::default_initializable... TComponents>
+    template<IsBasicType... TComponents>
     template<type_in<TComponents...> TComponent>
     void ECSManager<TComponents...>::Remove(const EntityID &entityId) {
         auto &isActive = GetComponent<TComponent>(entityId).active;
@@ -363,7 +373,7 @@ namespace ecs {
         isActive = false;
     }
 
-    template<std::default_initializable... TComponents>
+    template<IsBasicType... TComponents>
     bool ECSManager<TComponents...>::Has(const EntityID &entityId) const {
         if (entityId.GetId() >= NumberOfSlots) {
             throw std::out_of_range("Trying to access out of bounds!");
@@ -371,13 +381,13 @@ namespace ecs {
         return entities[entityId.GetId()].active;
     }
 
-    template<std::default_initializable... TComponents>
+    template<IsBasicType... TComponents>
     template<typename... TEntityComponents>
     bool ECSManager<TComponents...>::Has(const EntityID &entityId) const {
         return (HasInternal<TEntityComponents>(entityId) && ...);
     }
 
-    template<std::default_initializable... TComponents>
+    template<IsBasicType... TComponents>
     template<type_in<TComponents...> TComponent>
     TComponent &ECSManager<TComponents...>::Get(const EntityID &entityId) {
         if (!ReadComponent<TComponent>(entityId).active) {
@@ -386,24 +396,26 @@ namespace ecs {
         return GetComponentData<TComponent>(entityId);
     }
 
-    template<std::default_initializable... TComponents>
+    template<IsBasicType... TComponents>
     template<typename ... TSystemComponents>
     typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystem() {
         return System<TSystemComponents...>(*this);
     }
 
-    template<std::default_initializable... TComponents>
+    template<IsBasicType... TComponents>
     size_t ECSManager<TComponents...>::Size() const {
         return nrEntities;
     }
 
-    template<std::default_initializable... TComponents>
-    [[nodiscard]] typename ECSManager<TComponents...>::EntitiesSlots::const_iterator ECSManager<TComponents...>::begin() const {
+    template<IsBasicType... TComponents>
+    [[nodiscard]] typename ECSManager<TComponents...>::EntitiesSlots::const_iterator
+    ECSManager<TComponents...>::begin() const {
         return entities.begin();
     }
 
-    template<std::default_initializable... TComponents>
-    [[nodiscard]] typename ECSManager<TComponents...>::EntitiesSlots::const_iterator ECSManager<TComponents...>::end() const {
+    template<IsBasicType... TComponents>
+    [[nodiscard]] typename ECSManager<TComponents...>::EntitiesSlots::const_iterator
+    ECSManager<TComponents...>::end() const {
         return entities.begin() + endSlot;
     }
 }// namespace ecs
