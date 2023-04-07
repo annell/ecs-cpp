@@ -659,6 +659,7 @@ TEST(ECS, ConstrictedTypes) {
     };
     /**
      * Produces compile errors from class requirements
+        ecs::ECSManager<> empty;
         ecs::ECSManager<fooType> defaultInitializable;
         ecs::ECSManager<int&> ref;
         ecs::ECSManager<int*> ptr;
