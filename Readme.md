@@ -11,7 +11,7 @@ From [Wikipedia](https://en.wikipedia.org/wiki/Entity_component_system):
 
 >`System` A system is a process which acts on all entities with the desired components. For example a physics system may query for entities having mass, velocity and position components, and iterate over the results doing physics calculations on the sets of components for each entity.
 
->The behavior of an entity can be changed at runtime by systems that add, remove or modify components. This eliminates the ambiguity problems of deep and wide inheritance hierarchies often found in Object Oriented Programming techniques that are difficult to understand, maintain, and extend. Common ECS approaches are highly compatible with, and are often combined with, data-oriented design techniques. Data for all instances of a component are commonly stored together in physical memory, enabling efficient memory access for systems which operate over many entities.
+>The behavior of an entity can be changed at runtime by systems that add, remove or modify components. This eliminates the ambiguity problems of deep and wide inheritance hierarchies often found in Object-Oriented Programming techniques that are difficult to understand, maintain, and extend. Common ECS approaches are highly compatible with, and are often combined with, data-oriented design techniques. Data for all instances of a component are commonly stored together in physical memory, enabling efficient memory access for systems which operate over many entities.
 
 ## Features
 - Header only library for easy integration.
@@ -28,36 +28,36 @@ Create a container, components it should handle are coded in upfront:
 ecs::ECSManager<int, std::string> ecs;
 ```
 
-Add a entity to the container:
+AddEntity an entity to the container:
 ```c++
-ecs::EntityID entity = ecs.Add();
+ecs::EntityID entity = ecs.AddEntity();
 ```
 
-Add two components to the entity:
+AddEntity two components to the entity:
 ```c++
-ecs.Add(entity, std::string("Hej"));
-ecs.Add(entity, 5);
+ecs.AddEntity(entity, std::string("Hej"));
+ecs.AddEntity(entity, 5);
 ```
 
 Fill upp and loop over a system with its active entities that has active components:
 ```c++
 ecs::ECSManager<int, float, std::string> ecs;
-auto entity1 = ecs.Add();
-auto entity2 = ecs.Add();
-auto entity3 = ecs.Add();
+auto entity1 = ecs.AddEntity();
+auto entity2 = ecs.AddEntity();
+auto entity3 = ecs.AddEntity();
 
 // Fill up container with components
-ecs.Add(entity1, 1);
-ecs.Add(entity1, std::string("Hello"));
-//ecs.Add(entity1, 5.0f); // No float component on entity1
+ecs.AddEntity(entity1, 1);
+ecs.AddEntity(entity1, std::string("Hello"));
+//ecs.AddEntity(entity1, 5.0f); // No float component on entity1
 
-ecs.Add(entity2, 2);
-ecs.Add(entity2, std::string("World"));
-ecs.Add(entity2, 5.0f);
+ecs.AddEntity(entity2, 2);
+ecs.AddEntity(entity2, std::string("World"));
+ecs.AddEntity(entity2, 5.0f);
 
-ecs.Add(entity3, 3);
-//ecs.Add(entity3, "!"); // No string component on entity3
-ecs.Add(entity3, 5.0f);
+ecs.AddEntity(entity3, 3);
+//ecs.AddEntity(entity3, "!"); // No string component on entity3
+ecs.AddEntity(entity3, 5.0f);
 
 // Will match entity1 and entity2
 std::string output;

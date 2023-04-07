@@ -6,11 +6,11 @@
 #include <gtest/gtest.h>
 #include <future>
 
-TEST(ECS, Add) {
+TEST(ECS, AddEntity) {
     ecs::ECSManager<int, std::string> ecs;
 
-    auto entity = ecs.Add();
-    auto entity2 = ecs.Add();
+    auto entity = ecs.AddEntity();
+    auto entity2 = ecs.AddEntity();
 
     ASSERT_EQ(entity.GetId(), 0);
     ASSERT_EQ(entity2.GetId(), 1);
@@ -19,18 +19,18 @@ TEST(ECS, Add) {
 TEST(ECS, MakeEntityOverflow) {
     ecs::ECSManager<int> ecs;
 
-    for (int i = 0; i < ecs::ECSManager<>::NumberOfSlots - 1; i++) {
-        auto entity = ecs.Add();
+    for (int i = 0; i < ecs::ECSManager<int>::NumberOfSlots - 1; i++) {
+        auto entity = ecs.AddEntity();
         ASSERT_EQ(entity.GetId(), i);
     }
-    EXPECT_THROW(auto entity2 = ecs.Add(), std::out_of_range);
+    EXPECT_THROW(auto entity2 = ecs.AddEntity(), std::out_of_range);
 }
 
 TEST(ECS, NotSharedSpace) {
     ecs::ECSManager<int, std::string> ecs;
 
-    ecs::EntityID entity = ecs.Add();
-    ecs::EntityID entity2 = ecs.Add();
+    ecs::EntityID entity = ecs.AddEntity();
+    ecs::EntityID entity2 = ecs.AddEntity();
     ecs.Add(entity, std::string("Hej"));
     ecs.Add(entity2, 5);
 
@@ -45,7 +45,7 @@ TEST(ECS, NotSharedSpace) {
 TEST(ECS, SharedSpace) {
     ecs::ECSManager<int, std::string> ecs;
 
-    ecs::EntityID entity = ecs.Add();
+    ecs::EntityID entity = ecs.AddEntity();
     ecs.Add(entity, std::string("Hej"));
     ecs.Add(entity, 5);
 
@@ -56,7 +56,7 @@ TEST(ECS, SharedSpace) {
 TEST(ECS, ReadValue) {
     ecs::ECSManager<int> ecs;
 
-    ecs::EntityID entity = ecs.Add();
+    ecs::EntityID entity = ecs.AddEntity();
 
     ASSERT_FALSE(ecs.Has<int>(entity));
     EXPECT_THROW(auto ret = ecs.Get<int>(entity), std::invalid_argument);
@@ -68,7 +68,7 @@ TEST(ECS, ReadValue) {
 
 TEST(ECS, AddTwiceError) {
     ecs::ECSManager<int> ecs;
-    ecs::EntityID entity = ecs.Add();
+    ecs::EntityID entity = ecs.AddEntity();
 
     ecs.Add(entity, 5);
     EXPECT_THROW(ecs.Add(entity, 5), std::logic_error);
@@ -77,8 +77,8 @@ TEST(ECS, AddTwiceError) {
 TEST(ECS, ReadValueSeveralEntities) {
     ecs::ECSManager<int> ecs;
 
-    ecs::EntityID entity = ecs.Add();
-    ecs::EntityID entity2 = ecs.Add();
+    ecs::EntityID entity = ecs.AddEntity();
+    ecs::EntityID entity2 = ecs.AddEntity();
 
     ASSERT_FALSE(ecs.Has<int>(entity));
     ecs.Add(entity, 5);
@@ -94,8 +94,8 @@ TEST(ECS, ReadValueSeveralEntities) {
 TEST(ECS, ReadValueSeveralEntitiesAndComponents) {
     ecs::ECSManager<int, std::string> ecs;
 
-    ecs::EntityID entity = ecs.Add();
-    ecs::EntityID entity2 = ecs.Add();
+    ecs::EntityID entity = ecs.AddEntity();
+    ecs::EntityID entity2 = ecs.AddEntity();
 
     ASSERT_FALSE(ecs.Has<std::string>(entity));
     ASSERT_FALSE(ecs.Has<int>(entity));
@@ -131,7 +131,7 @@ TEST(ECS, ReadValueSeveralEntitiesAndComponents) {
 TEST(ECS, InvalidEntityHasComponent) {
     ecs::ECSManager<int> ecs;
 
-    ecs::EntityID entity = ecs.Add();
+    ecs::EntityID entity = ecs.AddEntity();
     ecs.Add(entity, 5);
     ASSERT_TRUE(ecs.Has<int>(entity));
     ASSERT_EQ(ecs.Get<int>(entity), 5);
@@ -144,89 +144,89 @@ TEST(ECS, InvalidEntityHasComponent) {
 TEST(ECS, InvalidEntityHasEntity) {
     ecs::ECSManager<int> ecs;
 
-    ecs::EntityID entity = ecs.Add();
+    ecs::EntityID entity = ecs.AddEntity();
     ecs.Add(entity, 5);
     ASSERT_TRUE(ecs.Has<int>(entity));
     ASSERT_EQ(ecs.Get<int>(entity), 5);
-    ASSERT_TRUE(ecs.Has(entity));
+    ASSERT_TRUE(ecs.HasEntity(entity));
 
     auto fakeEntity = ecs::EntityID(24);
-    ASSERT_FALSE(ecs.Has(fakeEntity));
+    ASSERT_FALSE(ecs.HasEntity(fakeEntity));
 
     auto fakeEntity2 = ecs::EntityID(99999);
-    EXPECT_THROW(auto ret = ecs.Has(fakeEntity2), std::out_of_range);
+    EXPECT_THROW(auto ret = ecs.HasEntity(fakeEntity2), std::out_of_range);
 }
 
 TEST(ECS, CheckLastSlot) {
     ecs::ECSManager<int> ecs;
 
-    ecs::EntityID entity = ecs.Add();
-    ASSERT_TRUE(ecs.Has(entity));
+    ecs::EntityID entity = ecs.AddEntity();
+    ASSERT_TRUE(ecs.HasEntity(entity));
     ASSERT_EQ(entity.GetId(), 0);
     auto fakeEntity = ecs::EntityID(1);
     ASSERT_EQ(fakeEntity.GetId(), 1);
-    ASSERT_FALSE(ecs.Has(fakeEntity));
+    ASSERT_FALSE(ecs.HasEntity(fakeEntity));
 
     auto fakeEntity2 = ecs::EntityID(-1);
     ASSERT_EQ(fakeEntity2.GetId(), -1);
-    EXPECT_THROW(auto ret = ecs.Has(fakeEntity2), std::out_of_range);
+    EXPECT_THROW(auto ret = ecs.HasEntity(fakeEntity2), std::out_of_range);
 }
 
 TEST(ECS, RemoveEntity) {
     ecs::ECSManager<int> ecs;
 
-    ecs::EntityID entity = ecs.Add();
-    ASSERT_TRUE(ecs.Has(entity));
+    ecs::EntityID entity = ecs.AddEntity();
+    ASSERT_TRUE(ecs.HasEntity(entity));
     ecs.Remove(entity);
-    ASSERT_FALSE(ecs.Has(entity));
+    ASSERT_FALSE(ecs.HasEntity(entity));
 }
 
 TEST(ECS, ReclaimId) {
     ecs::ECSManager<int> ecs;
 
-    ecs::EntityID entity = ecs.Add();
-    ASSERT_TRUE(ecs.Has(entity));
+    ecs::EntityID entity = ecs.AddEntity();
+    ASSERT_TRUE(ecs.HasEntity(entity));
     ASSERT_EQ(entity.GetId(), 0);
     ecs.Remove(entity);
-    ASSERT_FALSE(ecs.Has(entity));
+    ASSERT_FALSE(ecs.HasEntity(entity));
 
-    ecs::EntityID entity2 = ecs.Add();
+    ecs::EntityID entity2 = ecs.AddEntity();
     ASSERT_EQ(entity2.GetId(), 0);
-    ASSERT_TRUE(ecs.Has(entity2));
+    ASSERT_TRUE(ecs.HasEntity(entity2));
 }
 
 TEST(ECS, RemoveCleanupComponents) {
     ecs::ECSManager<int> ecs;
 
     ASSERT_EQ(ecs.Size(), 0);
-    ecs::EntityID entity = ecs.Add();
+    ecs::EntityID entity = ecs.AddEntity();
     ASSERT_EQ(ecs.Size(), 1);
-    ASSERT_TRUE(ecs.Has(entity));
+    ASSERT_TRUE(ecs.HasEntity(entity));
     ecs.Add(entity, 5);
     ASSERT_TRUE(ecs.Has<int>(entity));
     ecs.Remove(entity);
     ASSERT_EQ(ecs.Size(), 0);
-    ASSERT_FALSE(ecs.Has(entity));
+    ASSERT_FALSE(ecs.HasEntity(entity));
 
     ASSERT_THROW(ecs.Remove(entity), std::logic_error);
     ASSERT_EQ(ecs.Size(), 0);
 
-    ecs::EntityID entity2 = ecs.Add();
+    ecs::EntityID entity2 = ecs.AddEntity();
     ASSERT_EQ(ecs.Size(), 1);
     ASSERT_EQ(entity2.GetId(), 0);
-    ASSERT_TRUE(ecs.Has(entity2));
+    ASSERT_TRUE(ecs.HasEntity(entity2));
     ASSERT_FALSE(ecs.Has<int>(entity2));
 }
 
 TEST(ECS, RemoveComponent) {
     ecs::ECSManager<int> ecs;
 
-    auto entity = ecs.Add();
+    auto entity = ecs.AddEntity();
     ecs.Add(entity, 5);
-    ASSERT_TRUE(ecs.Has(entity));
+    ASSERT_TRUE(ecs.HasEntity(entity));
     ASSERT_TRUE(ecs.Has<int>(entity));
     ecs.Remove<int>(entity);
-    ASSERT_TRUE(ecs.Has(entity));
+    ASSERT_TRUE(ecs.HasEntity(entity));
     ASSERT_FALSE(ecs.Has<int>(entity));
 
     ASSERT_THROW(ecs.Remove<int>(entity), std::logic_error);
@@ -243,7 +243,7 @@ TEST(ECS, LoopEntities) {
     }
 
     {
-        auto entity = ecs.Add();
+        auto entity = ecs.AddEntity();
         ecs.Add(entity, 5);
         int callCount = 0;
         for (auto &e: ecs) {
@@ -256,7 +256,7 @@ TEST(ECS, LoopEntities) {
         ASSERT_EQ(callCount, 1);
     }
     {
-        auto entity = ecs.Add();
+        auto entity = ecs.AddEntity();
         ecs.Add(entity, 2);
         ecs.Add(entity, std::string("hej"));
 
@@ -278,14 +278,14 @@ TEST(ECS, LoopEntities) {
             callCount++;
         }
         ASSERT_EQ(callCount, 1);
-        ASSERT_FALSE(ecs.Has(entity));
+        ASSERT_FALSE(ecs.HasEntity(entity));
     }
 }
 
 TEST(ECS, LoopOnceWithFilter) {
     ecs::ECSManager<int, std::string> ecs;
 
-    auto entity = ecs.Add();
+    auto entity = ecs.AddEntity();
     ecs.Add(entity, 5);
     ecs.Add<std::string>(entity, "string");
     int count = 0;
@@ -300,20 +300,20 @@ TEST(ECS, LoopOnceWithFilter) {
 TEST(ECS, LoopMultipleWithFilter) {
     ecs::ECSManager<int, std::string> ecs;
     {
-        auto entity = ecs.Add();
+        auto entity = ecs.AddEntity();
         ecs.Add(entity, 5);
         ecs.Add<std::string>(entity, "one");
     }
     {
-        auto entity = ecs.Add();
+        auto entity = ecs.AddEntity();
         ecs.Add<std::string>(entity, "two");
     }
     {
-        auto entity = ecs.Add();
+        auto entity = ecs.AddEntity();
         ecs.Add(entity, 6);
     }
     {
-        auto entity = ecs.Add();
+        auto entity = ecs.AddEntity();
         ecs.Add(entity, 7);
         ecs.Add<std::string>(entity, "three");
     }
@@ -346,12 +346,12 @@ TEST(ECS, LoopMultipleWithFilter) {
 TEST(ECS, RemoveEntityAndLoop) {
     using ECSContainer = ecs::ECSManager<int, std::string>;
     ECSContainer ecs;
-    auto entity = ecs.Add();
+    auto entity = ecs.AddEntity();
     ecs.Add(entity, 5);
     ecs.Add<std::string>(entity, "one");
-    auto entity2 = ecs.Add();
+    auto entity2 = ecs.AddEntity();
     ecs.Add<std::string>(entity2, "two");
-    auto entity3 = ecs.Add();
+    auto entity3 = ecs.AddEntity();
     ecs.Add(entity3, 6);
 
     {
@@ -408,21 +408,21 @@ TEST(ECS, RemoveEntityAndLoop) {
 
 TEST(ECS, ReadmeShowcase) {
     ecs::ECSManager<int, float, std::string> ecs;
-    auto entity1 = ecs.Add();
-    auto entity2 = ecs.Add();
-    auto entity3 = ecs.Add();
+    auto entity1 = ecs.AddEntity();
+    auto entity2 = ecs.AddEntity();
+    auto entity3 = ecs.AddEntity();
 
 // Fill up container with components
     ecs.Add(entity1, 1);
     ecs.Add(entity1, std::string("Hello"));
-//ecs.Add(entity1, 5.0f); // No float component on entity1
+//ecs.AddEntity(entity1, 5.0f); // No float component on entity1
 
     ecs.Add(entity2, 2);
     ecs.Add(entity2, std::string("World"));
     ecs.Add(entity2, 5.0f);
 
     ecs.Add(entity3, 3);
-//ecs.Add(entity3, "!"); // No string component on entity3
+//ecs.AddEntity(entity3, "!"); // No string component on entity3
     ecs.Add(entity3, 5.0f);
 
 // Will match entity1 and entity2
@@ -445,14 +445,14 @@ TEST(ECS, ReadmeShowcase) {
 
 TEST(ECS, FindInSystem) {
     ecs::ECSManager<int, float, std::string> ecs;
-    auto entity1 = ecs.Add();
-    auto entity2 = ecs.Add();
-    auto entity3 = ecs.Add();
+    auto entity1 = ecs.AddEntity();
+    auto entity2 = ecs.AddEntity();
+    auto entity3 = ecs.AddEntity();
 
 // Fill up container with components
     ecs.Add(entity1, 1);
     ecs.Add(entity1, std::string("Hello"));
-//ecs.Add(entity1, 5.0f); // No float component on entity1
+//ecs.AddEntity(entity1, 5.0f); // No float component on entity1
 
     ecs.Add(entity2, 2);
     ecs.Add(entity2, std::string("World"));
@@ -495,9 +495,9 @@ TEST(ECS, DefaultConstrutableConcept) {
 
 TEST(ECS, FillHoleTest) {
     ecs::ECSManager<int> ecs;
-    auto e1 = ecs.Add();
-    auto e2 = ecs.Add();
-    auto e3 = ecs.Add();
+    auto e1 = ecs.AddEntity();
+    auto e2 = ecs.AddEntity();
+    auto e3 = ecs.AddEntity();
 
     ASSERT_EQ(e1.GetId(), 0);
     ASSERT_EQ(e2.GetId(), 1);
@@ -510,17 +510,17 @@ TEST(ECS, FillHoleTest) {
     ASSERT_EQ(ecs.Size(), 2);
 
     // The hole should be filled
-    auto e4 = ecs.Add();
+    auto e4 = ecs.AddEntity();
     ASSERT_EQ(e4.GetId(), 1);
 }
 
 TEST(ECS, FillBigHoleTest) {
     ecs::ECSManager<int> ecs;
-    auto e1 = ecs.Add();
-    auto e2 = ecs.Add();
-    auto e3 = ecs.Add();
-    auto e4 = ecs.Add();
-    auto e5 = ecs.Add();
+    auto e1 = ecs.AddEntity();
+    auto e2 = ecs.AddEntity();
+    auto e3 = ecs.AddEntity();
+    auto e4 = ecs.AddEntity();
+    auto e5 = ecs.AddEntity();
 
     ASSERT_EQ(e1.GetId(), 0);
     ASSERT_EQ(e2.GetId(), 1);
@@ -537,21 +537,21 @@ TEST(ECS, FillBigHoleTest) {
     ASSERT_EQ(ecs.Size(), 2);
 
     // The hole should be filled
-    auto e6 = ecs.Add();
+    auto e6 = ecs.AddEntity();
     ASSERT_EQ(e6.GetId(), 1);
-    auto e7 = ecs.Add();
+    auto e7 = ecs.AddEntity();
     ASSERT_EQ(e7.GetId(), 2);
-    auto e8 = ecs.Add();
+    auto e8 = ecs.AddEntity();
     ASSERT_EQ(e8.GetId(), 3);
 
     // Remove and fill first;
     ecs.Remove(e1);
-    auto e9 = ecs.Add();
+    auto e9 = ecs.AddEntity();
     ASSERT_EQ(e9.GetId(), 0);
 
     // Remove and fill last;
     ecs.Remove(e5);
-    auto e10 = ecs.Add();
+    auto e10 = ecs.AddEntity();
     ASSERT_EQ(e10.GetId(), 4);
 
     ASSERT_EQ(ecs.Size(), 5);
@@ -562,15 +562,15 @@ TEST(ECS, ReuseSlots) {
 
     // Will go out of bounds and throw if slots aren't reused.
     for (int i = 0; i < 100000; i++) {
-        auto entity = ecs.Add();
+        auto entity = ecs.AddEntity();
         ecs.Remove(entity);
     }
 }
 
 TEST(ECS, ConcurencySystem) {
     ecs::ECSManager<int, float> ecs;
-    for (int i = 0; i < ecs::ECSManager<>::NumberOfSlots - 1; i++) {
-        auto val = ecs.Add();
+    for (int i = 0; i < ecs::ECSManager<int>::NumberOfSlots - 1; i++) {
+        auto val = ecs.AddEntity();
     }
 
     for (auto [i, f]: ecs.GetSystem<int, float>()) {
@@ -622,12 +622,12 @@ TEST(ECS, LoopComparision) {
         };
 
         ecs::ECSManager<ComplexObject> ecs;
-        std::array<ComplexObject, ecs::ECSManager<>::NumberOfSlots> a1;
+        std::array<ComplexObject, ecs::ECSManager<int>::NumberOfSlots> a1;
 
-        for (int i = 0; i < ecs::ECSManager<>::NumberOfSlots - 1; i++) {
-            auto val = ecs.Add();
+        for (int j = 0; j < ecs::ECSManager<int>::NumberOfSlots - 1; j++) {
+            auto val = ecs.AddEntity();
             ecs.Add<ComplexObject>(val, {});
-            a1[i] = {};
+            a1[j] = {};
         }
 
         auto start1 = high_resolution_clock::now();
@@ -644,8 +644,8 @@ TEST(ECS, LoopComparision) {
         auto end2 = high_resolution_clock::now();
         auto duration2 = duration_cast<nanoseconds>(end2 - start2);
 
-        // ECS is about ~2-3 slower then a std::array on non trivial objects.
-        // On trivial objects its about 100 times slower.
+        // ECS is about ~2-3 slower than a std::array on non-trivial objects.
+        // On trivial objects it's about 100 times slower.
         count1 += duration1.count();
         count2 += duration2.count();
     }
@@ -653,7 +653,7 @@ TEST(ECS, LoopComparision) {
 }
 
 TEST(ECS, ConstrictedTypes) {
-    struct fooType {
+    struct [[maybe_unused]] fooType {
         fooType() = delete;
         int bla = 5;
     };
@@ -665,6 +665,49 @@ TEST(ECS, ConstrictedTypes) {
         ecs::ECSManager<const int> const;
         ecs::ECSManager<volatile int> volatile;
      */
+}
+
+TEST(ECS, HoleTest) {
+    ecs::ECSManager<int> ecs;
+    auto e1 = ecs.AddEntity();
+    auto e2 = ecs.AddEntity();
+    auto e3 = ecs.AddEntity();
+    auto e4 = ecs.AddEntity();
+    auto e5 = ecs.AddEntity();
+
+    ASSERT_EQ(e1.GetId(), 0);
+    ASSERT_EQ(e2.GetId(), 1);
+    ASSERT_EQ(e3.GetId(), 2);
+    ASSERT_EQ(e4.GetId(), 3);
+    ASSERT_EQ(e5.GetId(), 4);
+    ASSERT_EQ(ecs.Size(), 5);
+
+    // Create a hole in the list of entities
+    ecs.Remove(e2);
+    ecs.Remove(e3);
+    ecs.Remove(e4);
+
+    ASSERT_EQ(ecs.Size(), 2);
+
+    // The hole should be filled
+    auto e6 = ecs.AddEntity();
+    ASSERT_EQ(e6.GetId(), 1);
+    auto e7 = ecs.AddEntity();
+    ASSERT_EQ(e7.GetId(), 2);
+    auto e8 = ecs.AddEntity();
+    ASSERT_EQ(e8.GetId(), 3);
+
+    // Remove and fill first;
+    ecs.Remove(e1);
+    auto e9 = ecs.AddEntity();
+    ASSERT_EQ(e9.GetId(), 0);
+
+    // Remove and fill last;
+    ecs.Remove(e5);
+    auto e10 = ecs.AddEntity();
+    ASSERT_EQ(e10.GetId(), 4);
+
+    ASSERT_EQ(ecs.Size(), 5);
 }
 
 int main(int argc, char **argv) {
