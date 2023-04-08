@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # Entity Component System (ECS)
 A fully dynamic header only Entity Component System where components can be added or removed to entities whenever.
 
