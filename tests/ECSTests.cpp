@@ -6,6 +6,12 @@
 #include <gtest/gtest.h>
 #include <future>
 
+TEST(ECS, GetLastSlot) {
+    ecs::ECSManager<int, std::string> ecs;
+    auto entity = ecs.AddEntity();
+    ecs.RemoveEntity(entity);
+}
+
 TEST(ECS, AddEntity) {
     ecs::ECSManager<int, std::string> ecs;
 
@@ -177,7 +183,7 @@ TEST(ECS, RemoveEntity) {
 
     ecs::EntityID entity = ecs.AddEntity();
     ASSERT_TRUE(ecs.HasEntity(entity));
-    ecs.Remove(entity);
+    ecs.RemoveEntity(entity);
     ASSERT_FALSE(ecs.HasEntity(entity));
 }
 
@@ -187,7 +193,7 @@ TEST(ECS, ReclaimId) {
     ecs::EntityID entity = ecs.AddEntity();
     ASSERT_TRUE(ecs.HasEntity(entity));
     ASSERT_EQ(entity.GetId(), 0);
-    ecs.Remove(entity);
+    ecs.RemoveEntity(entity);
     ASSERT_FALSE(ecs.HasEntity(entity));
 
     ecs::EntityID entity2 = ecs.AddEntity();
@@ -204,11 +210,11 @@ TEST(ECS, RemoveCleanupComponents) {
     ASSERT_TRUE(ecs.HasEntity(entity));
     ecs.Add(entity, 5);
     ASSERT_TRUE(ecs.Has<int>(entity));
-    ecs.Remove(entity);
+    ecs.RemoveEntity(entity);
     ASSERT_EQ(ecs.Size(), 0);
     ASSERT_FALSE(ecs.HasEntity(entity));
 
-    ASSERT_THROW(ecs.Remove(entity), std::logic_error);
+    ASSERT_THROW(ecs.RemoveEntity(entity), std::logic_error);
     ASSERT_EQ(ecs.Size(), 0);
 
     ecs::EntityID entity2 = ecs.AddEntity();
@@ -272,7 +278,7 @@ TEST(ECS, LoopEntities) {
             }
         }
         ASSERT_EQ(callCount, 2);
-        ecs.Remove(entity);
+        ecs.RemoveEntity(entity);
         callCount = 0;
         for (auto &e: ecs) {
             callCount++;
@@ -504,9 +510,9 @@ TEST(ECS, FillHoleTest) {
     ASSERT_EQ(e3.GetId(), 2);
 
     // Create a hole in the list of entities
-    ecs.Remove(e2);
+    ecs.RemoveEntity(e2);
     ASSERT_EQ(ecs.Size(), 2);
-    EXPECT_THROW(ecs.Remove(e2), std::logic_error);
+    EXPECT_THROW(ecs.RemoveEntity(e2), std::logic_error);
     ASSERT_EQ(ecs.Size(), 2);
 
     // The hole should be filled
@@ -530,9 +536,9 @@ TEST(ECS, FillBigHoleTest) {
     ASSERT_EQ(ecs.Size(), 5);
 
     // Create a hole in the list of entities
-    ecs.Remove(e2);
-    ecs.Remove(e3);
-    ecs.Remove(e4);
+    ecs.RemoveEntity(e2);
+    ecs.RemoveEntity(e3);
+    ecs.RemoveEntity(e4);
 
     ASSERT_EQ(ecs.Size(), 2);
 
@@ -545,12 +551,12 @@ TEST(ECS, FillBigHoleTest) {
     ASSERT_EQ(e8.GetId(), 3);
 
     // Remove and fill first;
-    ecs.Remove(e1);
+    ecs.RemoveEntity(e1);
     auto e9 = ecs.AddEntity();
     ASSERT_EQ(e9.GetId(), 0);
 
     // Remove and fill last;
-    ecs.Remove(e5);
+    ecs.RemoveEntity(e5);
     auto e10 = ecs.AddEntity();
     ASSERT_EQ(e10.GetId(), 4);
 
@@ -563,7 +569,7 @@ TEST(ECS, ReuseSlots) {
     // Will go out of bounds and throw if slots aren't reused.
     for (int i = 0; i < 100000; i++) {
         auto entity = ecs.AddEntity();
-        ecs.Remove(entity);
+        ecs.RemoveEntity(entity);
     }
 }
 
@@ -684,9 +690,9 @@ TEST(ECS, HoleTest) {
     ASSERT_EQ(ecs.Size(), 5);
 
     // Create a hole in the list of entities
-    ecs.Remove(e2);
-    ecs.Remove(e3);
-    ecs.Remove(e4);
+    ecs.RemoveEntity(e2);
+    ecs.RemoveEntity(e3);
+    ecs.RemoveEntity(e4);
 
     ASSERT_EQ(ecs.Size(), 2);
 
@@ -699,12 +705,12 @@ TEST(ECS, HoleTest) {
     ASSERT_EQ(e8.GetId(), 3);
 
     // Remove and fill first;
-    ecs.Remove(e1);
+    ecs.RemoveEntity(e1);
     auto e9 = ecs.AddEntity();
     ASSERT_EQ(e9.GetId(), 0);
 
     // Remove and fill last;
-    ecs.Remove(e5);
+    ecs.RemoveEntity(e5);
     auto e10 = ecs.AddEntity();
     ASSERT_EQ(e10.GetId(), 4);
 

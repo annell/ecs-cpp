@@ -5,6 +5,10 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
+#include <tuple>
+#include <algorithm>
+#include <stdexcept>
 
 namespace ecs {
     /**
@@ -191,7 +195,7 @@ namespace ecs {
          * Remove a entity from the ECS.
          * @param entityId reference to the entity.
          */
-        inline void Remove(const EntityID &entityId);
+        inline void RemoveEntity(const EntityID &entityId);
 
         /**
          * Remove a component from a entity.
@@ -366,7 +370,7 @@ namespace ecs {
 
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
-    void ECSManager<TComponents...>::Remove(const EntityID &entityId) {
+    void ECSManager<TComponents...>::RemoveEntity(const EntityID &entityId) {
         auto &entity = GetEntity(entityId.GetId());
         if (!entity.active) {
             throw std::logic_error("Entity not active!");
