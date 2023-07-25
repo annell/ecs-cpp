@@ -19,7 +19,10 @@ namespace ecs {
     public:
         using ID = size_t;
 
-        explicit EntityID(ID id)
+        EntityID() : EntityID(0) {
+        }
+
+        EntityID(ID id)
                 : id(id) {
         }
 

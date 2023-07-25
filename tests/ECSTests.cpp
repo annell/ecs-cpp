@@ -2,7 +2,7 @@
 // Created by Stefan Annell on 2023-01-01.
 //
 
-#include "EntityComponentSystem.h"
+#include "include/EntityComponentSystem.h"
 #include <gtest/gtest.h>
 #include <future>
 
