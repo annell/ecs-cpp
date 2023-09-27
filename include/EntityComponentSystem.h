@@ -19,8 +19,7 @@ namespace ecs {
     public:
         using ID = size_t;
 
-        EntityID() : EntityID(0) {
-        }
+        EntityID() = default;
 
         EntityID(ID id)
                 : id(id) {
@@ -31,8 +30,10 @@ namespace ecs {
         }
 
         friend bool operator==(const EntityID &a, const EntityID &b) { return a.id == b.id; };
+
+        explicit operator bool() const { return id != SIZE_MAX; }
     private:
-        ID id;
+        ID id = SIZE_MAX;
     };
 
     template<typename TypeToCheck, typename... TypesToCheckAgainst>
@@ -314,6 +315,12 @@ namespace ecs {
             }
         }
 
+        inline void ValidateEntityID(EntityID id) const {
+            if (not id) {
+                throw std::logic_error("ID not initialized!");
+            }
+        }
+
         size_t GetFirstEmptySlot() {
             size_t slot = 0;
             while (slot < endSlot && entities[slot].active) {
@@ -363,6 +370,7 @@ namespace ecs {
     template<typename TComponent>
     requires NonVoidArgs<TComponents...> && TypeIn<TComponent, TComponents...>
     void ECSManager<TComponents...>::Add(const EntityID &entityId, const TComponent &component) {
+        ValidateEntityID(entityId);
         auto &isActive = GetComponent<TComponent>(entityId).active;
         if (isActive) {
             throw std::logic_error("Component already added!");
@@ -374,6 +382,7 @@ namespace ecs {
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     void ECSManager<TComponents...>::RemoveEntity(const EntityID &entityId) {
+        ValidateEntityID(entityId);
         auto &entity = GetEntity(entityId.GetId());
         if (!entity.active) {
             throw std::logic_error("Entity not active!");
@@ -390,6 +399,7 @@ namespace ecs {
     template<typename TComponent>
     requires NonVoidArgs<TComponents...> && TypeIn<TComponent, TComponents...>
     void ECSManager<TComponents...>::Remove(const EntityID &entityId) {
+        ValidateEntityID(entityId);
         auto &isActive = GetComponent<TComponent>(entityId).active;
         if (!isActive) {
             throw std::logic_error("Component not active!");
@@ -400,6 +410,7 @@ namespace ecs {
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     bool ECSManager<TComponents...>::HasEntity(const EntityID &entityId) const {
+        ValidateEntityID(entityId);
         if (entityId.GetId() >= NumberOfSlots) {
             throw std::out_of_range("Trying to access out of bounds!");
         }
@@ -411,6 +422,7 @@ namespace ecs {
     template<typename... TEntityComponents>
     requires NonVoidArgs<TEntityComponents...>
     bool ECSManager<TComponents...>::Has(const EntityID &entityId) const {
+        ValidateEntityID(entityId);
         return (HasInternal<TEntityComponents>(entityId) && ...);
     }
 
@@ -419,6 +431,7 @@ namespace ecs {
     template<typename TComponent>
     requires NonVoidArgs<TComponents...> && TypeIn<TComponent, TComponents...>
     TComponent &ECSManager<TComponents...>::Get(const EntityID &entityId) {
+        ValidateEntityID(entityId);
         if (!ReadComponent<TComponent>(entityId).active) {
             throw std::invalid_argument("Bad access, component not present on this entity.");
         }
