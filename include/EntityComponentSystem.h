@@ -19,19 +19,19 @@ namespace ecs {
     public:
         using ID = size_t;
 
-        EntityID() = default;
+        constexpr EntityID() = default;
 
-        EntityID(ID id)
+        constexpr EntityID(ID id)
                 : id(id) {
         }
 
-        [[nodiscard]] EntityID::ID GetId() const {
+        [[nodiscard]] constexpr EntityID::ID GetId() const {
             return id;
         }
 
-        friend bool operator==(const EntityID &a, const EntityID &b) { return a.id == b.id; };
+        friend constexpr bool operator==(const EntityID &a, const EntityID &b) { return a.id == b.id; };
 
-        explicit operator bool() const { return id != SIZE_MAX; }
+        constexpr operator bool() const { return id != SIZE_MAX; }
     private:
         ID id = SIZE_MAX;
     };
@@ -177,13 +177,13 @@ namespace ecs {
             TECSManager &ecs;
         };
 
-        ECSManager();
+        constexpr ECSManager();
 
         /**
          * AddEntity a new entity to the ECS
          * @return EntityID
          */
-        [[nodiscard]] inline EntityID AddEntity();
+        [[nodiscard]] constexpr inline EntityID AddEntity();
 
         /**
          * Adds a new component to a entity.
@@ -193,13 +193,13 @@ namespace ecs {
          */
         template<typename TComponent>
         requires NonVoidArgs<TComponents...> && TypeIn<TComponent, TComponents...>
-        void Add(const EntityID &entityId, const TComponent &component);
+        constexpr void Add(const EntityID &entityId, const TComponent &component);
 
         /**
          * Remove a entity from the ECS.
          * @param entityId reference to the entity.
          */
-        inline void RemoveEntity(const EntityID &entityId);
+        constexpr inline void RemoveEntity(const EntityID &entityId);
 
         /**
          * Remove a component from a entity.
@@ -208,14 +208,14 @@ namespace ecs {
          */
         template<typename TComponent>
         requires NonVoidArgs<TComponents...> && TypeIn<TComponent, TComponents...>
-        void Remove(const EntityID &entityId);
+        constexpr void Remove(const EntityID &entityId);
 
         /**
          * Checks if ecs has the given entity
          * @param entityId reference to the entity
          * @return bool if entity is active.
          */
-        [[nodiscard]] inline bool HasEntity(const EntityID &entityId) const;
+        [[nodiscard]] constexpr inline bool HasEntity(const EntityID &entityId) const;
 
         /**
          * Checks if the given entity has the components.
@@ -225,7 +225,7 @@ namespace ecs {
          */
         template<typename... TEntityComponents>
         requires NonVoidArgs<TEntityComponents...>
-        [[nodiscard]] bool Has(const EntityID &entityId) const;
+        [[nodiscard]] constexpr bool Has(const EntityID &entityId) const;
 
         /**
          * Returns a reference to the requested component data.
@@ -235,7 +235,7 @@ namespace ecs {
          */
         template<typename TComponent>
         requires NonVoidArgs<TComponents...> && TypeIn<TComponent, TComponents...>
-        [[nodiscard]] TComponent &Get(const EntityID &entityId);
+        [[nodiscard]] constexpr TComponent &Get(const EntityID &entityId);
 
         /**
          * Returns a system which is a list of a set of components.
@@ -244,13 +244,13 @@ namespace ecs {
          */
         template<typename ... TSystemComponents>
         requires NonVoidArgs<TSystemComponents...>
-        [[nodiscard]] System<TSystemComponents...> GetSystem();
+        [[nodiscard]] constexpr System<TSystemComponents...> GetSystem();
 
         /**
          * Returns number of entities in ECS
          * @return size_t
          */
-        [[nodiscard]] size_t Size() const;
+        [[nodiscard]] constexpr size_t Size() const;
 
         /**
          * Begin iterator, first element in entities list.
@@ -347,7 +347,7 @@ namespace ecs {
 
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
-    ECSManager<TComponents...>::ECSManager() {
+    constexpr ECSManager<TComponents...>::ECSManager() {
         int id = 0;
         std::for_each(entities.begin(), entities.end(), [&id](auto& entity) {
             entity.id = EntityID(id++);
@@ -356,7 +356,7 @@ namespace ecs {
 
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
-    EntityID ECSManager<TComponents...>::AddEntity() {
+    constexpr EntityID ECSManager<TComponents...>::AddEntity() {
         auto slot = GetFirstEmptySlot();
         auto &entity = GetEntity(slot);
         entity.active = true;
@@ -369,7 +369,7 @@ namespace ecs {
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     template<typename TComponent>
     requires NonVoidArgs<TComponents...> && TypeIn<TComponent, TComponents...>
-    void ECSManager<TComponents...>::Add(const EntityID &entityId, const TComponent &component) {
+    constexpr void ECSManager<TComponents...>::Add(const EntityID &entityId, const TComponent &component) {
         ValidateEntityID(entityId);
         auto &isActive = GetComponent<TComponent>(entityId).active;
         if (isActive) {
@@ -381,7 +381,7 @@ namespace ecs {
 
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
-    void ECSManager<TComponents...>::RemoveEntity(const EntityID &entityId) {
+    constexpr void ECSManager<TComponents...>::RemoveEntity(const EntityID &entityId) {
         ValidateEntityID(entityId);
         auto &entity = GetEntity(entityId.GetId());
         if (!entity.active) {
@@ -398,7 +398,7 @@ namespace ecs {
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     template<typename TComponent>
     requires NonVoidArgs<TComponents...> && TypeIn<TComponent, TComponents...>
-    void ECSManager<TComponents...>::Remove(const EntityID &entityId) {
+    constexpr void ECSManager<TComponents...>::Remove(const EntityID &entityId) {
         ValidateEntityID(entityId);
         auto &isActive = GetComponent<TComponent>(entityId).active;
         if (!isActive) {
@@ -409,7 +409,7 @@ namespace ecs {
 
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
-    bool ECSManager<TComponents...>::HasEntity(const EntityID &entityId) const {
+    constexpr bool ECSManager<TComponents...>::HasEntity(const EntityID &entityId) const {
         ValidateEntityID(entityId);
         if (entityId.GetId() >= NumberOfSlots) {
             throw std::out_of_range("Trying to access out of bounds!");
@@ -421,7 +421,7 @@ namespace ecs {
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     template<typename... TEntityComponents>
     requires NonVoidArgs<TEntityComponents...>
-    bool ECSManager<TComponents...>::Has(const EntityID &entityId) const {
+    constexpr bool ECSManager<TComponents...>::Has(const EntityID &entityId) const {
         ValidateEntityID(entityId);
         return (HasInternal<TEntityComponents>(entityId) && ...);
     }
@@ -430,7 +430,7 @@ namespace ecs {
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     template<typename TComponent>
     requires NonVoidArgs<TComponents...> && TypeIn<TComponent, TComponents...>
-    TComponent &ECSManager<TComponents...>::Get(const EntityID &entityId) {
+    constexpr TComponent &ECSManager<TComponents...>::Get(const EntityID &entityId) {
         ValidateEntityID(entityId);
         if (!ReadComponent<TComponent>(entityId).active) {
             throw std::invalid_argument("Bad access, component not present on this entity.");
@@ -442,13 +442,13 @@ namespace ecs {
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     template<typename ... TSystemComponents>
     requires NonVoidArgs<TSystemComponents...>
-    typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystem() {
+    constexpr typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystem() {
         return System<TSystemComponents...>(*this);
     }
 
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
-    size_t ECSManager<TComponents...>::Size() const {
+    constexpr size_t ECSManager<TComponents...>::Size() const {
         return nrEntities;
     }
 
