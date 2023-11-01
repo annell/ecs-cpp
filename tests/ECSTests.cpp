@@ -2,7 +2,7 @@
 // Created by Stefan Annell on 2023-01-01.
 //
 
-#include "include/EntityComponentSystem.h"
+#include "src/EcsCpp.h"
 #include <gtest/gtest.h>
 #include <future>
 
@@ -175,7 +175,7 @@ TEST(ECS, CheckLastSlot) {
 
     auto fakeEntity2 = ecs::EntityID(-1);
     ASSERT_EQ(fakeEntity2.GetId(), -1);
-    EXPECT_THROW(auto ret = ecs.HasEntity(fakeEntity2), std::out_of_range);
+    EXPECT_THROW(auto ret = ecs.HasEntity(fakeEntity2), std::logic_error);
 }
 
 TEST(ECS, RemoveEntity) {
