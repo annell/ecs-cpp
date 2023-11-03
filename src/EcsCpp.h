@@ -192,7 +192,7 @@ namespace ecs {
          */
         template<typename... TEntityComponents>
         requires NonVoidArgs<TEntityComponents...>
-        [[nodiscard]] constexpr inline EntityID BuildEntity(TEntityComponents&&... args) {
+        constexpr inline EntityID BuildEntity(TEntityComponents&&... args) {
             auto id = AddEntity();
             (Add<TEntityComponents>(id, std::forward<TEntityComponents>(args)), ...);
             return id;
