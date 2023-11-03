@@ -2,7 +2,7 @@
 // Created by Stefan Annell on 2023-01-01.
 //
 
-#include "src/EcsCpp.h"
+#include <EcsCpp.h>
 #include <gtest/gtest.h>
 #include <future>
 
