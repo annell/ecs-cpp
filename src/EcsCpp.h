@@ -186,6 +186,19 @@ namespace ecs {
         [[nodiscard]] constexpr inline EntityID AddEntity();
 
         /**
+         * BuildEntity adds a entity and adds in components to the
+         * new entity. So both AddEntity and Add in one call.
+         * @return EntityID
+         */
+        template<typename... TEntityComponents>
+        requires NonVoidArgs<TEntityComponents...>
+        [[nodiscard]] constexpr inline EntityID BuildEntity(TEntityComponents&&... args) {
+            auto id = AddEntity();
+            (Add<TEntityComponents>(id, std::forward<TEntityComponents>(args)), ...);
+            return id;
+        }
+
+        /**
          * Adds a new component to a entity.
          * @tparam TComponent type of the new component.
          * @param entityId reference to the entity.

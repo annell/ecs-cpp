@@ -22,6 +22,25 @@ TEST(ECS, AddEntity) {
     ASSERT_EQ(entity2.GetId(), 1);
 }
 
+TEST(ECS, AddEntityAndComponent) {
+    ecs::ECSManager<int, std::string> ecs;
+
+    auto entity = ecs.BuildEntity(1, std::string("hej"));
+    auto entity2 = ecs.AddEntity();
+
+    ASSERT_EQ(entity.GetId(), 0);
+    ASSERT_EQ(entity2.GetId(), 1);
+
+    ASSERT_TRUE(ecs.Has<int>(entity));
+    ASSERT_TRUE(ecs.Has<std::string>(entity));
+
+    ASSERT_FALSE(ecs.Has<int>(entity2));
+    ASSERT_FALSE(ecs.Has<std::string>(entity2));
+    ASSERT_EQ(ecs.Get<int>(entity), 1);
+    ASSERT_EQ(ecs.Get<std::string>(entity), "hej");
+}
+
+
 TEST(ECS, MakeEntityOverflow) {
     ecs::ECSManager<int> ecs;
 
