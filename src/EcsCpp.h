@@ -375,6 +375,9 @@ namespace ecs {
         entity.active = true;
         std::apply([](auto &&...args) { ((args.active = false), ...); }, entity.activeComponents);
         nrEntities++;
+        if constexpr ((std::is_same<EntityID, TComponents>::value || ...)) {
+            Add<EntityID>(entity.id, entity.id);
+        }
         return entity.id;
     }
 
