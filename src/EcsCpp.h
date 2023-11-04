@@ -277,11 +277,20 @@ namespace ecs {
          */
         [[nodiscard]] typename EntitiesSlots::const_iterator end() const;
 
-    private:
+        /**
+         * A getter to fetch multiple components at once.
+         *
+         * @tparam TComponentsRequested
+         * @param entityId
+         * @return A tuple with components in the same order as the template arguments.
+         * can use auto [a, b, c] = GetSeveral<A, B, C>(entityId); to unpack.
+         */
         template<typename... TComponentsRequested>
         [[nodiscard]] auto GetSeveral(const EntityID &entityId) {
             return std::forward_as_tuple(Get<TComponentsRequested>(entityId)...);
         }
+
+    private:
 
         template<TypeIn<TComponents...> TEntityComponent>
         [[nodiscard]] bool HasInternal(const EntityID &entityId) const {
