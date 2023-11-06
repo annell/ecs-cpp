@@ -251,6 +251,19 @@ namespace ecs {
         [[nodiscard]] constexpr TComponent &Get(const EntityID &entityId);
 
         /**
+         * A getter to fetch multiple components at once.
+         *
+         * @tparam TComponentsRequested
+         * @param entityId
+         * @return A tuple with components in the same order as the template arguments.
+         * can use auto [a, b, c] = GetSeveral<A, B, C>(entityId); to unpack.
+         */
+        template<typename... TComponentsRequested>
+        [[nodiscard]] auto GetSeveral(const EntityID &entityId) {
+            return std::forward_as_tuple(Get<TComponentsRequested>(entityId)...);
+        }
+
+        /**
          * Returns a system which is a list of a set of components.
          * @tparam TSystemComponents the list of components in the system.
          * @return System<TSystemComponents...> the system of components.
@@ -276,19 +289,6 @@ namespace ecs {
          * @return iterator to end
          */
         [[nodiscard]] typename EntitiesSlots::const_iterator end() const;
-
-        /**
-         * A getter to fetch multiple components at once.
-         *
-         * @tparam TComponentsRequested
-         * @param entityId
-         * @return A tuple with components in the same order as the template arguments.
-         * can use auto [a, b, c] = GetSeveral<A, B, C>(entityId); to unpack.
-         */
-        template<typename... TComponentsRequested>
-        [[nodiscard]] auto GetSeveral(const EntityID &entityId) {
-            return std::forward_as_tuple(Get<TComponentsRequested>(entityId)...);
-        }
 
     private:
 

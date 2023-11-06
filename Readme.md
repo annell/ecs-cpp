@@ -1,7 +1,7 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-# Entity Component System (ECS)
-A fully dynamic header only Entity Component System where components can be added or removed to entities whenever.
+# ecs-cpp
+A fully dynamic header only Entity Component System for C++20 where components can be added or removed to entities whenever.
 
 ## What is ECS?
 
@@ -41,25 +41,24 @@ ecs.AddEntity(entity, std::string("Hej"));
 ecs.AddEntity(entity, 5);
 ```
 
+Or add both entities at the same time:
+```c++
+ecs.AddSeveral(entity, std::string("Hej"), 5);
+```
+
+Or do the two steps, adding a entity and its components, in one call:
+```c++
+ecs::EntityID entity = ecs.BuildEntity(std::string("Hej"), 5);
+```
+
 Fill upp and loop over a system with its active entities that has active components:
 ```c++
+#include <ecs-cpp/EcsCpp.h>
+
 ecs::ECSManager<int, float, std::string> ecs;
-auto entity1 = ecs.AddEntity();
-auto entity2 = ecs.AddEntity();
-auto entity3 = ecs.AddEntity();
-
-// Fill up container with components
-ecs.AddEntity(entity1, 1);
-ecs.AddEntity(entity1, std::string("Hello"));
-//ecs.AddEntity(entity1, 5.0f); // No float component on entity1
-
-ecs.AddEntity(entity2, 2);
-ecs.AddEntity(entity2, std::string("World"));
-ecs.AddEntity(entity2, 5.0f);
-
-ecs.AddEntity(entity3, 3);
-//ecs.AddEntity(entity3, "!"); // No string component on entity3
-ecs.AddEntity(entity3, 5.0f);
+auto entity1 = ecs.BuildEntity(std::string("Hello"), 1);
+auto entity2 = ecs.BuildEntity(2, std::string("Hello"), 5.0f);
+auto entity3 = ecs.BuildEntity(3, 5.0f);
 
 // Will match entity1 and entity2
 std::string output;
@@ -80,16 +79,23 @@ ASSERT_EQ(isum, 5);
 ```
 
 # To install
-## Header only method
-1. Clone `EntityComponentSystem.h` to your project and include header.
+## CMake method
+1. Clone ecs-cpp to your project.
+2. Add `add_subdirectory(path/ecs-cpp)` to your CMakeLists.txt.
+3. Link your project to `ecs-cpp`.
+4. Include `#include <ecs-cpp/EcsCpp.h>` in your project.
 
 ### Dependencies
 - C++20
 
+### Example on integration
+Here you can find a example on how to integrate this library into your project using CMake: [ecs-cpp-example](https://github.com/annell/physim-cpp).
+In this example, the library is placed under thirdparty/ecs-cpp.
+
 ## To run test suite
-1. Clone `EntityComponentSystem.h` to your project.
+1. Clone ecs-cpp to your project.
 2. Install dependencies.
-3. Include the CMakeList in your cmake structure.
+3. Add `add_subdirectory(path/ecs-cpp)` to your CMakeLists.txt.
 
 ### Dependencies
 - C++20
