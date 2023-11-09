@@ -25,7 +25,7 @@ namespace ecs {
                 : id(id) {
         }
 
-        [[nodiscard]] constexpr EntityID::ID GetId() const {
+        [[nodiscard]] constexpr const EntityID::ID& GetId() const {
             return id;
         }
 
@@ -78,7 +78,7 @@ namespace ecs {
     class ECSManager {
     public:
         using TECSManager = ECSManager<TComponents...>;
-        constexpr static int NumberOfSlots = 1024;
+        constexpr static int NumberOfSlots = 4096;
 
         template<typename TComponent>
         using ComponentArray = std::array<TComponent, NumberOfSlots>;
@@ -294,7 +294,7 @@ namespace ecs {
 
         template<TypeIn<TComponents...> TEntityComponent>
         [[nodiscard]] bool HasInternal(const EntityID &entityId) const {
-            return ReadComponent<TEntityComponent>(entityId).active;
+            return std::get<AvailableComponent<TEntityComponent>>(entities[entityId.GetId()].activeComponents).active;
         }
 
         template<typename TEntityComponent>
@@ -309,11 +309,10 @@ namespace ecs {
 
         template<typename TEntityComponent>
         [[nodiscard]] const AvailableComponent<TEntityComponent> &ReadComponent(const EntityID &entityId) const {
-            return std::get<AvailableComponent<TEntityComponent>>(ReadEntity(entityId.GetId()).activeComponents);
+            return std::get<AvailableComponent<TEntityComponent>>(entities[entityId.GetId()].activeComponents);
         }
 
         [[nodiscard]] inline const Entity &ReadEntity(size_t index) const {
-            ValidateID(index);
             return entities[index];
         }
 
@@ -447,7 +446,7 @@ namespace ecs {
     template<typename... TEntityComponents>
     requires NonVoidArgs<TEntityComponents...>
     constexpr bool ECSManager<TComponents...>::Has(const EntityID &entityId) const {
-        ValidateEntityID(entityId);
+        //ValidateEntityID(entityId);
         return (HasInternal<TEntityComponents>(entityId) && ...);
     }
 
