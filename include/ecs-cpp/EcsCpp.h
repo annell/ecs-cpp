@@ -78,7 +78,7 @@ namespace ecs {
     class ECSManager {
     public:
         using TECSManager = ECSManager<TComponents...>;
-        constexpr static int NumberOfSlots = 4096;
+        constexpr static int NumberOfSlots = 16384;
 
         template<typename TComponent>
         using ComponentArray = std::array<TComponent, NumberOfSlots>;
