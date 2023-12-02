@@ -59,8 +59,6 @@ namespace ecs {
     * Initialized with a list of components to track:
     * ECSManager<TComponent1, TComponent2>()
     *
-    * Has place for up to NumberOfSlots = 1024 entities.
-    *
     * AddEntity, Remove, Has got both entity and component
     * interfaces to be able to interact with both easily
     * depending on the need.
@@ -78,10 +76,9 @@ namespace ecs {
     class ECSManager {
     public:
         using TECSManager = ECSManager<TComponents...>;
-        constexpr static int NumberOfSlots = 16384;
 
         template<typename TComponent>
-        using ComponentArray = std::array<TComponent, NumberOfSlots>;
+        using ComponentArray = std::vector<TComponent>;
         using ComponentMatrix = std::tuple<ComponentArray<TComponents>...>;
 
         template<typename /*TComponent*/>
@@ -100,7 +97,7 @@ namespace ecs {
             bool active = false;
             EntityID id = EntityID(0);
         };
-        using EntitiesSlots = std::array<Entity, NumberOfSlots>;
+        using EntitiesSlots = std::vector<Entity>;
 
         /**
          * SystemIterator
@@ -177,7 +174,7 @@ namespace ecs {
             TECSManager &ecs;
         };
 
-        constexpr ECSManager();
+        constexpr ECSManager() = default;
 
         /**
          * AddEntity a new entity to the ECS
@@ -331,9 +328,6 @@ namespace ecs {
             if (index >= endSlot) {
                 throw std::out_of_range("Accessing outside of endSlot!");
             }
-            if (endSlot >= NumberOfSlots) {
-                throw std::out_of_range("Used up all NumberOfSlots!");
-            }
         }
 
         inline void ValidateEntityID(EntityID id) const {
@@ -366,19 +360,19 @@ namespace ecs {
         ComponentMatrix componentArrays{};
     };
 
-    template<typename... TComponents>
-    requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
-    constexpr ECSManager<TComponents...>::ECSManager() {
-        int id = 0;
-        std::for_each(entities.begin(), entities.end(), [&id](auto& entity) {
-            entity.id = EntityID(id++);
-        });
+    template <typename T>
+    void push_to_vector(std::vector<T>& vector) {
+        vector.push_back(T{});
     }
 
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     constexpr EntityID ECSManager<TComponents...>::AddEntity() {
         auto slot = GetFirstEmptySlot();
+        if (slot == entities.size()) {
+            entities.push_back({.id=EntityID(slot)});
+            std::apply([](auto &&...args) { ((push_to_vector(args)), ...); }, componentArrays);
+        }
         auto &entity = GetEntity(slot);
         entity.active = true;
         std::apply([](auto &&...args) { ((args.active = false), ...); }, entity.activeComponents);
@@ -435,7 +429,7 @@ namespace ecs {
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     constexpr bool ECSManager<TComponents...>::HasEntity(const EntityID &entityId) const {
         ValidateEntityID(entityId);
-        if (entityId.GetId() >= NumberOfSlots) {
+        if (entityId.GetId() >= entities.size()) {
             throw std::out_of_range("Trying to access out of bounds!");
         }
         return entities[entityId.GetId()].active;
@@ -446,7 +440,7 @@ namespace ecs {
     template<typename... TEntityComponents>
     requires NonVoidArgs<TEntityComponents...>
     constexpr bool ECSManager<TComponents...>::Has(const EntityID &entityId) const {
-        //ValidateEntityID(entityId);
+        ValidateEntityID(entityId);
         return (HasInternal<TEntityComponents>(entityId) && ...);
     }
 

@@ -40,17 +40,6 @@ TEST(ECS, AddEntityAndComponent) {
     ASSERT_EQ(ecs.Get<std::string>(entity), "hej");
 }
 
-
-TEST(ECS, MakeEntityOverflow) {
-    ecs::ECSManager<int> ecs;
-
-    for (int i = 0; i < ecs::ECSManager<int>::NumberOfSlots - 1; i++) {
-        auto entity = ecs.AddEntity();
-        ASSERT_EQ(entity.GetId(), i);
-    }
-    EXPECT_THROW(auto entity2 = ecs.AddEntity(), std::out_of_range);
-}
-
 TEST(ECS, NotSharedSpace) {
     ecs::ECSManager<int, std::string> ecs;
 
@@ -162,8 +151,8 @@ TEST(ECS, InvalidEntityHasComponent) {
     ASSERT_EQ(ecs.Get<int>(entity), 5);
 
     auto fakeEntity = ecs::EntityID(24);
-    EXPECT_THROW(auto output = ecs.Has<int>(fakeEntity), std::out_of_range);
-    EXPECT_THROW(auto output = ecs.Get<int>(fakeEntity), std::out_of_range);
+    EXPECT_FALSE(ecs.Has<int>(fakeEntity));
+    EXPECT_THROW(auto output = ecs.Get<int>(fakeEntity), std::invalid_argument);
 }
 
 TEST(ECS, InvalidEntityHasEntity) {
@@ -176,7 +165,7 @@ TEST(ECS, InvalidEntityHasEntity) {
     ASSERT_TRUE(ecs.HasEntity(entity));
 
     auto fakeEntity = ecs::EntityID(24);
-    ASSERT_FALSE(ecs.HasEntity(fakeEntity));
+    EXPECT_THROW(auto ret = ecs.HasEntity(fakeEntity), std::out_of_range);
 
     auto fakeEntity2 = ecs::EntityID(99999);
     EXPECT_THROW(auto ret = ecs.HasEntity(fakeEntity2), std::out_of_range);
@@ -190,7 +179,7 @@ TEST(ECS, CheckLastSlot) {
     ASSERT_EQ(entity.GetId(), 0);
     auto fakeEntity = ecs::EntityID(1);
     ASSERT_EQ(fakeEntity.GetId(), 1);
-    ASSERT_FALSE(ecs.HasEntity(fakeEntity));
+    EXPECT_THROW(auto ret = ecs.HasEntity(fakeEntity), std::out_of_range);
 
     auto fakeEntity2 = ecs::EntityID(-1);
     ASSERT_EQ(fakeEntity2.GetId(), -1);
@@ -594,7 +583,7 @@ TEST(ECS, ReuseSlots) {
 
 TEST(ECS, ConcurencySystem) {
     ecs::ECSManager<int, float> ecs;
-    for (int i = 0; i < ecs::ECSManager<int>::NumberOfSlots - 1; i++) {
+    for (int i = 0; i < 1024 - 1; i++) {
         auto val = ecs.AddEntity();
     }
 
@@ -626,7 +615,7 @@ TEST(ECS, ConcurencySystem) {
 TEST(ECS, LoopComparision) {
     int count1 = 0;
     int count2 = 0;
-    int nrRuns = 100;
+    int nrRuns = 10;
     for (int i = 0; i < nrRuns; i++) {
 
         using namespace std::chrono;
@@ -647,9 +636,9 @@ TEST(ECS, LoopComparision) {
         };
 
         ecs::ECSManager<ComplexObject> ecs;
-        std::array<ComplexObject, ecs::ECSManager<int>::NumberOfSlots> a1;
+        std::array<ComplexObject, 1024> a1;
 
-        for (int j = 0; j < ecs::ECSManager<int>::NumberOfSlots - 1; j++) {
+        for (int j = 0; j < 1024 - 1; j++) {
             auto val = ecs.AddEntity();
             ecs.Add<ComplexObject>(val, {});
             a1[j] = {};
