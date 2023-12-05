@@ -725,6 +725,272 @@ TEST(ECS, HoleTest) {
     ASSERT_EQ(ecs.Size(), 5);
 }
 
+TEST(ECS, SystemPart) {
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 1024 - 1; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+
+    int maxParts = 3;
+    int n = 0;
+    for (int i = 0; i < maxParts; i++) {
+        for (auto [i, f]: ecs.GetSystemPart<int, float>(i, maxParts)) {
+            i = 42;
+            f = 3.14;
+            n++;
+        }
+    }
+    ASSERT_EQ(n, 1023);
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+}
+
+
+TEST(ECS, SystemPartConcurent) {
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 10000; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+
+    std::vector<std::future<void>> results;
+    int maxParts = 10;
+    for (int i = 0; i < maxParts; i++) {
+        results.push_back(std::async(std::launch::async, [&ecs, i, maxParts](){
+            for (auto [ii, f]: ecs.GetSystemPart<int, float>(i, maxParts)) {
+                ii = 42;
+                f = 3.14;
+            }
+        }));
+    }
+
+    for (const auto &future: results) {
+        future.wait();
+    }
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+}
+
+TEST(ECS, SystemPartValidateDifferentSplits_8)
+{
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 15; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+    int maxParts = 17;
+    int n = 0;
+    for (int i = 0; i < maxParts; i++) {
+        int nn = 0;
+        for (auto [i, f]: ecs.GetSystemPart<int, float>(i, maxParts)) {
+            i = 42;
+            f = 3.14;
+            n++;
+            nn++;
+        }
+        if (i == 16) {
+            ASSERT_EQ(nn, 15);
+        } else {
+            ASSERT_EQ(nn, 0);
+        }
+    }
+    ASSERT_EQ(n, 15);
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+}
+
+TEST(ECS, SystemPartValidateDifferentSplits_7)
+{
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 15; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+    int maxParts = 12;
+    int n = 0;
+    for (int i = 0; i < maxParts; i++) {
+        int nn = 0;
+        for (auto [i, f]: ecs.GetSystemPart<int, float>(i, maxParts)) {
+            i = 42;
+            f = 3.14;
+            n++;
+            nn++;
+        }
+        if (i == 11) {
+            ASSERT_EQ(nn, 4);
+        } else {
+            ASSERT_EQ(nn, 1);
+        }
+    }
+    ASSERT_EQ(n, 15);
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+}
+
+TEST(ECS, SystemPartValidateDifferentSplits_6)
+{
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 15; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+    int maxParts = 15;
+    int n = 0;
+    for (int i = 0; i < maxParts; i++) {
+        for (auto [i, f]: ecs.GetSystemPart<int, float>(i, maxParts)) {
+            i = 42;
+            f = 3.14;
+            n++;
+        }
+    }
+    ASSERT_EQ(n, 15);
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+}
+
+TEST(ECS, SystemPartValidateDifferentSplits_5)
+{
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 15; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+    int maxParts = 3;
+    int n = 0;
+    for (int i = 0; i < maxParts; i++) {
+        for (auto [i, f]: ecs.GetSystemPart<int, float>(i, maxParts)) {
+            i = 42;
+            f = 3.14;
+            n++;
+        }
+    }
+    ASSERT_EQ(n, 15);
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+}
+TEST(ECS, SystemPartValidateDifferentSplits_4)
+{
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 15; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+    int maxParts = 2;
+    int n = 0;
+    for (int i = 0; i < maxParts; i++) {
+        for (auto [i, f]: ecs.GetSystemPart<int, float>(i, maxParts)) {
+            i = 42;
+            f = 3.14;
+            n++;
+        }
+    }
+    ASSERT_EQ(n, 15);
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+}
+
+TEST(ECS, SystemPartValidateDifferentSplits_3)
+{
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 10; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+    int maxParts = 3;
+    int n = 0;
+    for (int i = 0; i < maxParts; i++) {
+        for (auto [i, f]: ecs.GetSystemPart<int, float>(i, maxParts)) {
+            i = 42;
+            f = 3.14;
+            n++;
+        }
+    }
+    ASSERT_EQ(n, 10);
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+}
+TEST(ECS, SystemPartValidateDifferentSplits_2)
+{
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 10; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+    int maxParts = 2;
+    int n = 0;
+    for (int i = 0; i < maxParts; i++) {
+        for (auto [i, f]: ecs.GetSystemPart<int, float>(i, maxParts)) {
+            i = 42;
+            f = 3.14;
+            n++;
+        }
+    }
+    ASSERT_EQ(n, 10);
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+}
+TEST(ECS, SystemPartValidateDifferentSplits_1)
+{
+    ecs::ECSManager<int, float> ecs;
+    for (int i = 0; i < 10; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+    int maxParts = 1;
+    int n = 0;
+    for (int i = 0; i < maxParts; i++) {
+        for (auto [i, f]: ecs.GetSystemPart<int, float>(i, maxParts)) {
+            i = 42;
+            f = 3.14;
+            n++;
+        }
+    }
+    ASSERT_EQ(n, 10);
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+}
+
+TEST(ECS, SystemPartValidateID)
+{
+    ecs::ECSManager<int, float, ecs::EntityID> ecs;
+    for (int i = 0; i < 10; i++) {
+        ecs.BuildEntity(0, 1.2f);
+    }
+    int maxParts = 1;
+    int n = 0;
+    std::vector<ecs::EntityID> ids;
+    for (int i = 0; i < maxParts; i++) {
+        for (auto [i, f, id]: ecs.GetSystemPart<int, float, ecs::EntityID>(i, maxParts)) {
+            i = 42;
+            f = 3.14;
+            n++;
+            ids.push_back(id);
+        }
+    }
+    ASSERT_EQ(n, 10);
+    for (auto [i, f]: ecs.GetSystem<int, float>()) {
+        ASSERT_EQ(i, 42);
+        ASSERT_FLOAT_EQ(f, 3.14f);
+    }
+    size_t idNr = 0;
+    for (auto id: ids) {
+        ASSERT_TRUE(ecs.HasEntity(id));
+        ASSERT_EQ(id.GetId(), idNr);
+        idNr++;
+    }
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

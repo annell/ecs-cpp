@@ -112,13 +112,12 @@ namespace ecs {
         private:
             using TInternalIterator = typename TECSManager::EntitiesSlots::const_iterator;
         public:
-            [[maybe_unused]] SystemIterator(TECSManager &ecs, TInternalIterator it) : ecs(ecs), it(it) {}
+            [[maybe_unused]] SystemIterator(TECSManager &ecs, TInternalIterator it, TInternalIterator endIt) : ecs(ecs), it(it), endIt(endIt) {}
 
             auto operator*() const { return ecs.template GetSeveral<TSystemComponents ...>(it->id); }
 
             SystemIterator &operator++() {
                 it++;
-                auto endIt = ecs.end();
                 while (it != endIt && (!it->active || !ecs.template Has<TSystemComponents ...>(it->id))) {
                     it++;
                 }
@@ -132,6 +131,7 @@ namespace ecs {
         private:
             TECSManager &ecs;
             TInternalIterator it;
+            const TInternalIterator endIt;
         };
 
         /**
@@ -146,7 +146,8 @@ namespace ecs {
         private:
             using TSystemIterator = SystemIterator<TSystemComponents...>;
         public:
-            explicit System(TECSManager &ecs) : ecs(ecs) {}
+            System(TECSManager &ecs) : ecs(ecs) {}
+            System(TECSManager &ecs, int part, int totalParts) : ecs(ecs), part(part), totalParts(totalParts) {}
 
             /**
              * Returns a iterator to the first value in the system.
@@ -155,12 +156,12 @@ namespace ecs {
              * @return TSystemIterator with a references to component data.
              */
             [[nodiscard]] TSystemIterator begin() const {
-                auto endIt = ecs.end();
-                auto it = ecs.begin();
+                auto endIt = ecs.end() - endIteratorOffset();
+                auto it = ecs.begin() + beginIteratorOffset();
                 while (it != endIt && (!it->active || !ecs.template Has<TSystemComponents ...>(it->id))) {
                     it++;
                 }
-                return TSystemIterator(ecs, it);
+                return TSystemIterator(ecs, it, endIt);
             }
 
 
@@ -168,10 +169,34 @@ namespace ecs {
              * Returns a iterator to end value in the system.
              * @return TSystemIterator to end iterator.
              */
-            [[nodiscard]] TSystemIterator end() const { return TSystemIterator(ecs, ecs.end()); }
+            [[nodiscard]] TSystemIterator end() const { return TSystemIterator(ecs, ecs.end() - endIteratorOffset(), ecs.end() - endIteratorOffset()); }
 
         private:
+
+            size_t partSize() const {
+                return ecs.Size() / totalParts;
+            }
+
+            bool has_remainder() const {
+                return ecs.Size() % totalParts != 0;
+            }
+
+            size_t endIteratorOffset() const {
+                if (has_remainder()) {
+                    if (part == totalParts - 1) {
+                        return 0;
+                    }
+                }
+                return ecs.Size() - (part + 1) * partSize();
+            }
+
+            size_t beginIteratorOffset() const {
+                return part * partSize();
+            }
+
             TECSManager &ecs;
+            int part = 0;
+            int totalParts = 1;
         };
 
         constexpr ECSManager() = default;
@@ -268,6 +293,18 @@ namespace ecs {
         template<typename ... TSystemComponents>
         requires NonVoidArgs<TSystemComponents...>
         [[nodiscard]] constexpr System<TSystemComponents...> GetSystem();
+
+        /**
+         * Returns a part of the system which is a list of a set of components,
+         * to be used for splitting the container up for multi threading purposes.
+         * @tparam TSystemComponents the list of components in the system.
+         * @param part the part of the system to return. 0 indexed, so 0 is the first part.
+         * @param totalParts the total number of parts the container is split up into.
+         * @return System<TSystemComponents...> the system of components.
+         */
+        template<typename ... TSystemComponents>
+        requires NonVoidArgs<TSystemComponents...>
+        [[nodiscard]] constexpr System<TSystemComponents...> GetSystemPart(int part, int totalParts);
 
         /**
          * Returns number of entities in ECS
@@ -462,6 +499,14 @@ namespace ecs {
     requires NonVoidArgs<TSystemComponents...>
     constexpr typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystem() {
         return System<TSystemComponents...>(*this);
+    }
+
+    template<typename... TComponents>
+    requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
+    template<typename ... TSystemComponents>
+    requires NonVoidArgs<TSystemComponents...>
+    constexpr typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystemPart(int part, int totalParts) {
+        return System<TSystemComponents...>(*this, part, totalParts);
     }
 
     template<typename... TComponents>
