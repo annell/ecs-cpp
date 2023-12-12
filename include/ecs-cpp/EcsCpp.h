@@ -5,52 +5,13 @@
 #pragma once
 
 #include <array>
-#include <cstddef>
 #include <tuple>
 #include <algorithm>
 #include <stdexcept>
+#include "EntityID.h"
+#include "EcsConcepts.h"
 
 namespace ecs {
-    /**
-     * EntityID
-     * Id reference to a entity.
-     */
-    class EntityID {
-    public:
-        using ID = size_t;
-
-        constexpr EntityID() = default;
-
-        constexpr EntityID(ID id)
-                : id(id) {
-        }
-
-        [[nodiscard]] constexpr const EntityID::ID& GetId() const {
-            return id;
-        }
-
-        friend constexpr bool operator==(const EntityID &a, const EntityID &b) { return a.id == b.id; };
-
-        constexpr operator bool() const { return id != SIZE_MAX; }
-    private:
-        ID id = SIZE_MAX;
-    };
-
-    template<typename TypeToCheck, typename... TypesToCheckAgainst>
-    concept TypeIn = (std::same_as<std::remove_cvref_t<TypeToCheck>, TypesToCheckAgainst> || ...);
-
-    template <typename... Args>
-    concept NonVoidArgs = sizeof...(Args) > 0;
-
-    template<typename ... TComponent>
-    concept IsBasicType = ((
-            std::default_initializable<TComponent> &&
-            not std::is_pointer_v<TComponent> &&
-            not std::is_reference_v<TComponent> &&
-            not std::is_const_v<TComponent> &&
-            not std::is_volatile_v<TComponent>) &&
-            ...);
-
     /**
     * ECSManager
     * A ECS container that keeps track of all components
