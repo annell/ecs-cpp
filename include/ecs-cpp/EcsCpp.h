@@ -4,12 +4,14 @@
 
 #pragma once
 
+#include <vector>
 #include <array>
 #include <tuple>
 #include <algorithm>
 #include <stdexcept>
+#include <optional>
 #include "EntityID.h"
-#include "EcsConcepts.h"
+#include "EcsUtil.h"
 
 namespace ecs {
     /**
@@ -35,7 +37,7 @@ namespace ecs {
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     class ECSManager {
-    public:
+    private:
         using TECSManager = ECSManager<TComponents...>;
 
         template<typename TComponent>
@@ -47,6 +49,20 @@ namespace ecs {
             bool active = false;
         };
         using AvailableComponents = std::tuple<AvailableComponent<TComponents>...>;
+
+        template<typename TComponent>
+        struct ComponentRange {
+            using T = TComponent;
+            bool componentPresent = false;
+            size_t firstSlot = SIZE_MAX;
+            size_t lastSlot = 0;
+        };
+        using ComponentRanges = std::tuple<ComponentRange<TComponents>...>;
+
+        struct ComponentRangesMatch {
+            size_t firstSlot = SIZE_MAX;
+            size_t lastSlot = 0;
+        };
 
         /**
          * Entity
@@ -73,26 +89,32 @@ namespace ecs {
         private:
             using TInternalIterator = typename TECSManager::EntitiesSlots::const_iterator;
         public:
-            [[maybe_unused]] SystemIterator(TECSManager &ecs, TInternalIterator it, TInternalIterator endIt) : ecs(ecs), it(it), endIt(endIt) {}
+            [[maybe_unused]] SystemIterator(TECSManager &ecs, TInternalIterator begin, TInternalIterator end) : ecs(ecs), begin(begin), first(begin), end(end) {}
 
-            auto operator*() const { return ecs.template GetSeveral<TSystemComponents ...>(it->id); }
+            auto operator*() const { return ecs.template GetSeveral<TSystemComponents ...>(begin->id); }
 
             SystemIterator &operator++() {
-                it++;
-                while (it != endIt && (!it->active || !ecs.template Has<TSystemComponents ...>(it->id))) {
-                    it++;
+                begin++;
+                while (begin != end) {
+                    count++;
+                    if (ecs.HasGivenComponents<TSystemComponents ...>(begin)) {
+                        break;
+                    }
+                    begin++;
                 }
                 return *this;
             }
 
-            friend bool operator==(const SystemIterator &a, const SystemIterator &b) { return a.it == b.it; };
+            friend bool operator==(const SystemIterator &a, const SystemIterator &b) { return a.begin == b.begin; };
 
-            friend bool operator!=(const SystemIterator &a, const SystemIterator &b) { return a.it != b.it; };
+            friend bool operator!=(const SystemIterator &a, const SystemIterator &b) { return a.begin != b.begin; };
 
         private:
             TECSManager &ecs;
-            TInternalIterator it;
-            const TInternalIterator endIt;
+            TInternalIterator begin;
+            const TInternalIterator first;
+            const TInternalIterator end;
+            int count = 0;
         };
 
         /**
@@ -100,6 +122,8 @@ namespace ecs {
          * A class that takes a ECS as input and creates
          * SystemIterators that a user can use to loop over the
          * components.
+         * The lifetime of a System needs to be shorter then
+         * its underlying ecs as it stores a reference to it.
          * @tparam TSystemComponents components to filter on.
          */
         template<typename... TSystemComponents>
@@ -107,8 +131,10 @@ namespace ecs {
         private:
             using TSystemIterator = SystemIterator<TSystemComponents...>;
         public:
-            System(TECSManager &ecs) : ecs(ecs) {}
-            System(TECSManager &ecs, int part, int totalParts) : ecs(ecs), part(part), totalParts(totalParts) {}
+            System(TECSManager &ecs, int part, int totalParts) : ecs(ecs), part(part), totalParts(totalParts), componentRangesMatch(ecs.GetSystemFilterMatch<TSystemComponents...>()) {
+                ValidateInvariant();
+            }
+            System(TECSManager &ecs) : System(ecs, 0, 1) {}
 
             /**
              * Returns a iterator to the first value in the system.
@@ -117,12 +143,18 @@ namespace ecs {
              * @return TSystemIterator with a references to component data.
              */
             [[nodiscard]] TSystemIterator begin() const {
-                auto endIt = ecs.end() - endIteratorOffset();
-                auto it = ecs.begin() + beginIteratorOffset();
-                while (it != endIt && (!it->active || !ecs.template Has<TSystemComponents ...>(it->id))) {
-                    it++;
+                if (!componentRangesMatch) {
+                    return end();
                 }
-                return TSystemIterator(ecs, it, endIt);
+                auto end = ecsEnd();
+                auto begin = ecsBegin();
+                while (begin != end) {
+                    if (ecs.HasGivenComponents<TSystemComponents ...>(begin)) {
+                        break;
+                    }
+                    begin++;
+                }
+                return TSystemIterator(ecs, begin, end);
             }
 
 
@@ -130,16 +162,23 @@ namespace ecs {
              * Returns a iterator to end value in the system.
              * @return TSystemIterator to end iterator.
              */
-            [[nodiscard]] TSystemIterator end() const { return TSystemIterator(ecs, ecs.end() - endIteratorOffset(), ecs.end() - endIteratorOffset()); }
+            [[nodiscard]] TSystemIterator end() const { return TSystemIterator(ecs, ecsEnd(), ecsEnd()); }
 
         private:
+            auto ecsEnd() const {
+                return ecs.end() - endIteratorOffset() - (componentRangesMatch ? ecs.ContainerSize() - 1 - componentRangesMatch->lastSlot : 0);
+            }
+
+            auto ecsBegin() const {
+                return ecs.begin() + beginIteratorOffset() + (componentRangesMatch ? componentRangesMatch->firstSlot : 0);
+            }
 
             size_t partSize() const {
-                return ecs.Size() / totalParts;
+                return ecs.ContainerSize() / totalParts;
             }
 
             bool has_remainder() const {
-                return ecs.Size() % totalParts != 0;
+                return ecs.ContainerSize() % totalParts != 0;
             }
 
             size_t endIteratorOffset() const {
@@ -148,18 +187,26 @@ namespace ecs {
                         return 0;
                     }
                 }
-                return ecs.Size() - (part + 1) * partSize();
+                return ecs.ContainerSize() - (part + 1) * partSize();
             }
 
             size_t beginIteratorOffset() const {
                 return part * partSize();
             }
 
+            void ValidateInvariant() const {
+                if (componentRangesMatch && componentRangesMatch->firstSlot > componentRangesMatch->lastSlot) {
+                    throw std::logic_error("Invariant broken! FirstSlot > LastSlot");
+                }
+            }
+
             TECSManager &ecs;
             int part = 0;
             int totalParts = 1;
+            std::optional<ComponentRangesMatch> componentRangesMatch{};
         };
 
+    public:
         constexpr ECSManager() = default;
 
         /**
@@ -286,6 +333,46 @@ namespace ecs {
         [[nodiscard]] typename EntitiesSlots::const_iterator end() const;
 
     private:
+        size_t ContainerSize() const {
+            return entities.size();
+        }
+
+        template<typename... TSystemComponents>
+        bool HasGivenComponents(const auto& it) const {
+            return it->active && Has<TSystemComponents ...>(it->id);
+        }
+
+        template<typename TEntityComponent>
+        void UpdateComponentRange(const EntityID &entityId) {
+            if (!HasInternal<TEntityComponent>(entityId)) {
+                throw std::logic_error("Not a valid id!");
+            }
+            auto &componentRange = std::get<ComponentRange<TEntityComponent>>(componentRanges);
+            if (!componentRange.componentPresent) {
+                componentRange.componentPresent = true;
+                componentRange.firstSlot = std::min(entityId.GetId(), componentRange.firstSlot);
+                componentRange.lastSlot = std::max(entityId.GetId(), componentRange.lastSlot);
+            } else {
+                componentRange.lastSlot = entityId.GetId();
+            }
+        }
+
+        template<typename... TSystemComponents>
+        std::optional<ComponentRangesMatch> GetSystemFilterMatch() {
+            bool found = false;
+            size_t firstSlot = 0;
+            size_t lastSlot = SIZE_MAX;
+
+            std::apply([&] <typename... TComponentRange> (TComponentRange&&... args) {
+                (((TypeInPack<TComponentRange, TSystemComponents ...>() && args.componentPresent) ? found = true : 0), ...);
+                (((TypeInPack<TComponentRange, TSystemComponents ...>() && args.componentPresent) ? firstSlot = std::max(args.firstSlot, firstSlot) : 0), ...);
+                (((TypeInPack<TComponentRange, TSystemComponents ...>() && args.componentPresent) ? lastSlot = std::min(args.lastSlot, lastSlot) : 0), ...);
+            }, componentRanges);
+            if (!found) {
+                return std::nullopt;
+            }
+            return ComponentRangesMatch{firstSlot, lastSlot};
+        }
 
         template<TypeIn<TComponents...> TEntityComponent>
         [[nodiscard]] bool HasInternal(const EntityID &entityId) const {
@@ -356,6 +443,7 @@ namespace ecs {
         size_t nrEntities = 0;
         EntitiesSlots entities;
         ComponentMatrix componentArrays{};
+        ComponentRanges componentRanges{};
     };
 
     template <typename T>
@@ -393,6 +481,7 @@ namespace ecs {
         }
         isActive = true;
         GetComponentData<TComponent>(entityId) = component;
+        UpdateComponentRange<TComponent>(entityId);
     }
 
     template<typename... TComponents>

@@ -7,6 +7,11 @@
 template<typename TypeToCheck, typename... TypesToCheckAgainst>
 concept TypeIn = (std::same_as<std::remove_cvref_t<TypeToCheck>, TypesToCheckAgainst> || ...);
 
+template<typename TypeToCheck, typename... TypesToCheckAgainst>
+constexpr bool TypeInPack() {
+    return (std::same_as<typename std::remove_cvref_t<TypeToCheck>::T, TypesToCheckAgainst> || ...);
+}
+
 template <typename... Args>
 concept NonVoidArgs = sizeof...(Args) > 0;
 

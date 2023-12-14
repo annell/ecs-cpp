@@ -311,6 +311,20 @@ TEST(ECS, LoopOnceWithFilter) {
     ASSERT_EQ(count, 1);
 }
 
+TEST(ECS, LoopTwiceWithFilter) {
+    ecs::ECSManager<int, std::string> ecs;
+
+    ecs.BuildEntity(5, std::string("string"));
+    ecs.BuildEntity(5, std::string("string"));
+    int count = 0;
+    for (auto [val1, val2]: ecs.GetSystem<int, std::string>()) {
+        ASSERT_EQ(val1, 5);
+        ASSERT_EQ(val2, "string");
+        count++;
+    }
+    ASSERT_EQ(count, 2);
+}
+
 TEST(ECS, LoopMultipleWithFilter) {
     ecs::ECSManager<int, std::string> ecs;
     {
