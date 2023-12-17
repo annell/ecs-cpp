@@ -52,7 +52,7 @@ namespace ecs {
 
         template<typename TComponent>
         struct ComponentRange {
-            using T = TComponent;
+            using TComponentRange = TComponent;
             bool componentPresent = false;
             size_t firstSlot = SIZE_MAX;
             size_t lastSlot = 0;
@@ -128,10 +128,9 @@ namespace ecs {
         private:
             using TSystemIterator = SystemIterator<TSystemComponents...>;
         public:
-            System(TECSManager &ecs, size_t part, size_t totalParts) : ecs(ecs), part(part), totalParts(totalParts), componentRangesMatch(ecs.GetSystemFilterMatch<TSystemComponents...>()) {
+            constexpr System(TECSManager &ecs, size_t part, size_t totalParts) : ecs(ecs), part(part), totalParts(totalParts), componentRangesMatch(ecs.GetSystemFilterMatch<TSystemComponents...>()) {
                 ValidateInvariant();
             }
-            System(TECSManager &ecs) : System(ecs, 0, 1) {}
 
             /**
              * Returns a iterator to the first value in the system.
@@ -170,16 +169,16 @@ namespace ecs {
                 return ecs.begin() + beginIteratorOffset() + (componentRangesMatch ? componentRangesMatch->firstSlot : 0);
             }
 
-            size_t partSize() const {
+            constexpr size_t partSize() const {
                 return ecs.ContainerSize() / totalParts;
             }
 
-            bool has_remainder() const {
+            constexpr bool hasRemainder() const {
                 return ecs.ContainerSize() % totalParts != 0;
             }
 
             size_t endIteratorOffset() const {
-                if (has_remainder()) {
+                if (hasRemainder()) {
                     if (part == totalParts - 1) {
                         return 0;
                     }
@@ -541,7 +540,7 @@ namespace ecs {
     template<typename ... TSystemComponents>
     requires NonVoidArgs<TSystemComponents...>
     constexpr typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystem() {
-        return System<TSystemComponents...>(*this);
+        return GetSystemPart<TSystemComponents...>(0, 1);
     }
 
     template<typename... TComponents>
