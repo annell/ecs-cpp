@@ -89,14 +89,13 @@ namespace ecs {
         private:
             using TInternalIterator = typename TECSManager::EntitiesSlots::const_iterator;
         public:
-            [[maybe_unused]] SystemIterator(TECSManager &ecs, TInternalIterator begin, TInternalIterator end) : ecs(ecs), begin(begin), first(begin), end(end) {}
+            [[maybe_unused]] SystemIterator(TECSManager &ecs, TInternalIterator begin, TInternalIterator end) : ecs(ecs), begin(begin), end(end) {}
 
             auto operator*() const { return ecs.template GetSeveral<TSystemComponents ...>(begin->id); }
 
             SystemIterator &operator++() {
                 begin++;
                 while (begin != end) {
-                    count++;
                     if (ecs.HasGivenComponents<TSystemComponents ...>(begin)) {
                         break;
                     }
@@ -112,9 +111,7 @@ namespace ecs {
         private:
             TECSManager &ecs;
             TInternalIterator begin;
-            const TInternalIterator first;
             const TInternalIterator end;
-            int count = 0;
         };
 
         /**
