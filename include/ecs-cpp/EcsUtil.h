@@ -23,3 +23,8 @@ concept IsBasicType = ((
         not std::is_const_v<TComponent> &&
         not std::is_volatile_v<TComponent>) &&
         ...);
+
+template <typename T>
+void PushToVector(std::vector<T>& vector) {
+    vector.push_back(T{});
+}

@@ -438,18 +438,13 @@ namespace ecs {
         ComponentRanges componentRanges{};
     };
 
-    template <typename T>
-    void push_to_vector(std::vector<T>& vector) {
-        vector.push_back(T{});
-    }
-
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     constexpr EntityID ECSManager<TComponents...>::AddEntity() {
         auto slot = GetFirstEmptySlot();
         if (slot == entities.size()) {
             entities.push_back({.id=EntityID(slot)});
-            std::apply([](auto &&...args) { ((push_to_vector(args)), ...); }, componentArrays);
+            std::apply([](auto &&...args) { ((PushToVector(args)), ...); }, componentArrays);
         }
         auto &entity = GetEntity(slot);
         entity.active = true;
