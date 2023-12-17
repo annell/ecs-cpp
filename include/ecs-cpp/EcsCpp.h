@@ -131,7 +131,7 @@ namespace ecs {
         private:
             using TSystemIterator = SystemIterator<TSystemComponents...>;
         public:
-            System(TECSManager &ecs, int part, int totalParts) : ecs(ecs), part(part), totalParts(totalParts), componentRangesMatch(ecs.GetSystemFilterMatch<TSystemComponents...>()) {
+            System(TECSManager &ecs, size_t part, size_t totalParts) : ecs(ecs), part(part), totalParts(totalParts), componentRangesMatch(ecs.GetSystemFilterMatch<TSystemComponents...>()) {
                 ValidateInvariant();
             }
             System(TECSManager &ecs) : System(ecs, 0, 1) {}
@@ -201,8 +201,8 @@ namespace ecs {
             }
 
             TECSManager &ecs;
-            int part = 0;
-            int totalParts = 1;
+            size_t part = 0;
+            size_t totalParts = 1;
             std::optional<ComponentRangesMatch> componentRangesMatch{};
         };
 
@@ -312,7 +312,7 @@ namespace ecs {
          */
         template<typename ... TSystemComponents>
         requires NonVoidArgs<TSystemComponents...>
-        [[nodiscard]] constexpr System<TSystemComponents...> GetSystemPart(int part, int totalParts);
+        [[nodiscard]] constexpr System<TSystemComponents...> GetSystemPart(size_t part, size_t totalParts);
 
         /**
          * Returns number of entities in ECS
@@ -392,10 +392,6 @@ namespace ecs {
         template<typename TEntityComponent>
         [[nodiscard]] const AvailableComponent<TEntityComponent> &ReadComponent(const EntityID &entityId) const {
             return std::get<AvailableComponent<TEntityComponent>>(entities[entityId.GetId()].activeComponents);
-        }
-
-        [[nodiscard]] inline const Entity &ReadEntity(size_t index) const {
-            return entities[index];
         }
 
         template<TypeIn<TComponents...> TComponent>
@@ -555,7 +551,7 @@ namespace ecs {
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     template<typename ... TSystemComponents>
     requires NonVoidArgs<TSystemComponents...>
-    constexpr typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystemPart(int part, int totalParts) {
+    constexpr typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystemPart(size_t part, size_t totalParts) {
         return System<TSystemComponents...>(*this, part, totalParts);
     }
 
