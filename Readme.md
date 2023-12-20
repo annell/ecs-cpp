@@ -5,6 +5,10 @@ A fully dynamic header only Entity Component System for C++20 where components c
 
 ## What is ECS?
 
+A Entity Component System (ECS) is a design pattern that is used to decouple data from logic. It is a way to organize your code in a way that is more flexible and maintainable. It is a common pattern used in game engines, but can be used in other applications as well.
+
+See it as a container that holds entities, and each entity can have one or more components. A component is a data structure that holds data, and a system is a function that operates on entities that has a specific set of components. A system can be seen as a function that takes in a set of components and performs the operation on said components. The ECS container is responsible for keeping track of which entities has which components, and which systems should be run on which entities.
+
 From [Wikipedia](https://en.wikipedia.org/wiki/Entity_component_system):
 
 >`Entity` An entity represents a general-purpose object. In a game engine context, for example, every coarse game object is represented as an entity. Usually, it only consists of a unique id. Implementations typically use a plain integer for this.
