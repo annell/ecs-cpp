@@ -1,4 +1,5 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/annell/ecs-cpp/cmake.yml)
 
 # ecs-cpp
 A fully dynamic header only Entity Component System for C++20 where components can be added or removed to entities whenever.
