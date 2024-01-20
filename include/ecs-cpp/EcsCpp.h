@@ -38,6 +38,7 @@ namespace ecs {
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     class ECSManager {
     private:
+        using TComponentPack = std::tuple<TComponents...>;
         using TECSManager = ECSManager<TComponents...>;
 
         template<typename TComponent>
@@ -285,6 +286,7 @@ namespace ecs {
          * can use auto [a, b, c] = GetSeveral<A, B, C>(entityId); to unpack.
          */
         template<typename... TComponentsRequested>
+        requires NonVoidArgs<TComponentsRequested...> && (TypeIn<TComponentsRequested, TComponents...> && ...)
         [[nodiscard]] auto GetSeveral(const EntityID &entityId) {
             return std::forward_as_tuple(Get<TComponentsRequested>(entityId)...);
         }
@@ -295,7 +297,7 @@ namespace ecs {
          * @return System<TSystemComponents...> the system of components.
          */
         template<typename ... TSystemComponents>
-        requires NonVoidArgs<TSystemComponents...>
+        requires NonVoidArgs<TSystemComponents...> && (TypeIn<TSystemComponents, TComponents...> && ...)
         [[nodiscard]] constexpr System<TSystemComponents...> GetSystem();
 
         /**
@@ -307,7 +309,7 @@ namespace ecs {
          * @return System<TSystemComponents...> the system of components.
          */
         template<typename ... TSystemComponents>
-        requires NonVoidArgs<TSystemComponents...>
+        requires NonVoidArgs<TSystemComponents...> && (TypeIn<TSystemComponents, TComponents...> && ...)
         [[nodiscard]] constexpr System<TSystemComponents...> GetSystemPart(size_t part, size_t totalParts);
 
         /**
@@ -533,7 +535,7 @@ namespace ecs {
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     template<typename ... TSystemComponents>
-    requires NonVoidArgs<TSystemComponents...>
+    requires NonVoidArgs<TSystemComponents...> && (TypeIn<TSystemComponents, TComponents...> && ...)
     constexpr typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystem() {
         return GetSystemPart<TSystemComponents...>(0, 1);
     }
@@ -541,7 +543,7 @@ namespace ecs {
     template<typename... TComponents>
     requires NonVoidArgs<TComponents...> && IsBasicType<TComponents...>
     template<typename ... TSystemComponents>
-    requires NonVoidArgs<TSystemComponents...>
+    requires NonVoidArgs<TSystemComponents...> && (TypeIn<TSystemComponents, TComponents...> && ...)
     constexpr typename ECSManager<TComponents...>::template System<TSystemComponents...> ECSManager<TComponents...>::GetSystemPart(size_t part, size_t totalParts) {
         return System<TSystemComponents...>(*this, part, totalParts);
     }
