@@ -1005,6 +1005,16 @@ TEST(ECS, SystemPartValidateID)
     }
 }
 
+TEST(ECS, HasTypes)
+{
+    using TEcs = ecs::ECSManager<int, float>;
+    static_assert(ecs::HasTypes<TEcs, int>());
+    static_assert(ecs::HasTypes<TEcs, int, float>());
+    static_assert(ecs::HasTypes<TEcs, float, int>());
+    static_assert(not ecs::HasTypes<TEcs, int, float, double>());
+    static_assert(not ecs::HasTypes<TEcs, double>());
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

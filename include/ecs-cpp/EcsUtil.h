@@ -9,6 +9,11 @@ concept TypeIn = (std::same_as<std::remove_cvref_t<TypeToCheck>, TypesToCheckAga
 
 template<typename TypeToCheck, typename... TypesToCheckAgainst>
 constexpr bool TypeInPack() {
+    return (std::same_as<typename std::remove_cvref_t<TypeToCheck>, TypesToCheckAgainst> || ...);
+}
+
+template<typename TypeToCheck, typename... TypesToCheckAgainst>
+constexpr bool ComponentTypeInPack() {
     return (std::same_as<typename std::remove_cvref_t<TypeToCheck>::TComponentRange, TypesToCheckAgainst> || ...);
 }
 

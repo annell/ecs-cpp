@@ -268,6 +268,21 @@ namespace ecs {
         [[nodiscard]] constexpr bool Has(const EntityID &entityId) const;
 
         /**
+         * Checks if the ecs has the given component.
+         * @tparam TEntityComponent The type of the component.
+         * @return bool if component is present.
+         * @note This is a static function and does not need a ecs instance.
+         * @note Recomended to use the ecs::HasTypes<>() function instead,
+         * to simplify interaction as it works with one or more types and has a
+         * simpler syntax.
+         */
+        template<typename TEntityComponent>
+        requires NonVoidArgs<TEntityComponent>
+        [[nodiscard]] static constexpr bool HasType() {
+            return (TypeInPack<TEntityComponent, TComponents>() || ...);
+        }
+
+        /**
          * Returns a reference to the requested component data.
          * @tparam TComponent the type of the component
          * @param entityId reference to the entity.
@@ -362,9 +377,9 @@ namespace ecs {
             size_t lastSlot = SIZE_MAX;
 
             std::apply([&] <typename... TComponentRange> (TComponentRange&&... args) {
-                (((TypeInPack<TComponentRange, TSystemComponents ...>() && args.componentPresent) ? found = true : 0), ...);
-                (((TypeInPack<TComponentRange, TSystemComponents ...>() && args.componentPresent) ? firstSlot = std::max(args.firstSlot, firstSlot) : 0), ...);
-                (((TypeInPack<TComponentRange, TSystemComponents ...>() && args.componentPresent) ? lastSlot = std::min(args.lastSlot, lastSlot) : 0), ...);
+                (((ComponentTypeInPack<TComponentRange, TSystemComponents ...>() && args.componentPresent) ? found = true : 0), ...);
+                (((ComponentTypeInPack<TComponentRange, TSystemComponents ...>() && args.componentPresent) ? firstSlot = std::max(args.firstSlot, firstSlot) : 0), ...);
+                (((ComponentTypeInPack<TComponentRange, TSystemComponents ...>() && args.componentPresent) ? lastSlot = std::min(args.lastSlot, lastSlot) : 0), ...);
             }, componentRanges);
             if (!found) {
                 return std::nullopt;
@@ -566,5 +581,10 @@ namespace ecs {
     [[nodiscard]] typename ECSManager<TComponents...>::EntitiesSlots::const_iterator
     ECSManager<TComponents...>::end() const {
         return entities.begin() + endSlot;
+    }
+
+    template <typename TECSManager, typename... TEntityComponents>
+    constexpr bool HasTypes() {
+        return (TECSManager::template HasType<TEntityComponents>() && ...);
     }
 }// namespace ecs
