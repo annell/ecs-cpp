@@ -72,7 +72,7 @@ namespace ecs {
                     return;
                 }
             }
-            AffectedEntities.push_back({entity, EffectMatrix{}});
+            AffectedEntities.push_back({entity, EffectMatrix{}, AttributeBase});
             (std::get<EffectList<TAddedEffects>>(AffectedEntities.back().Effects).push_back(EffectElement<TAddedEffects>{EffectIdCounter++, effects}), ...);
         }
 
@@ -101,7 +101,7 @@ namespace ecs {
                 return entities.Entity == entity;
             });
             if (it == AffectedEntities.end()){
-                AffectedEntities.push_back({entity, EffectMatrix{}});
+                AffectedEntities.push_back({entity, EffectMatrix{}, AttributeBase});
                 it = AffectedEntities.end() - 1;
             }
             ((std::get<TModifiedAttributes>(it->AttributeBase) = attributes), ...);
