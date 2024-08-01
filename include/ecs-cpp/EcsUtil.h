@@ -20,6 +20,26 @@ constexpr bool ComponentTypeInPack() {
 template <typename... Args>
 concept NonVoidArgs = sizeof...(Args) > 0;
 
+template<typename U, typename... T>
+constexpr bool Contains(std::tuple<T...>) {
+    return std::disjunction_v<std::is_same<U, T>...>;
+}
+
+template<typename T, typename Attributes>
+concept ContainedIn = Contains<T>(typename Attributes::AttributeList{});
+
+template <typename TEffect, typename Attributes>
+concept IsEffect =
+    requires(TEffect t, TEffect::Attribute& a, const Attributes::AttributeList& attributeList) {
+    { std::get<typename TEffect::Attribute>(attributeList) };
+    { t.Apply(a) };
+} && Contains<typename TEffect::Attribute>(typename Attributes::AttributeList{});
+
+template <typename TAttributes>
+concept IsAttributes = requires(typename TAttributes::AttributeList attributeList) {
+    { std::get<0>(attributeList) };
+};
+
 template<typename ... TComponent>
 concept IsBasicType = ((
         std::default_initializable<TComponent> &&

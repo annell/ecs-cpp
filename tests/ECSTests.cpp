@@ -5,6 +5,7 @@
 #include <ecs-cpp/EcsCpp.h>
 #include <gtest/gtest.h>
 #include <future>
+#include <ecs-cpp/EcsEffects.h>
 
 TEST(ECS, GetLastSlot) {
     ecs::ECSManager<int, std::string> ecs;
@@ -1014,6 +1015,201 @@ TEST(ECS, HasTypes)
     static_assert(not ecs::HasTypes<TEcs, int, float, double>());
     static_assert(not ecs::HasTypes<TEcs, double>());
 }
+
+struct TestAttribute {
+    bool bla = true;
+    int speed = 1;
+};
+
+struct TestEffect {
+    int speedMultiplier = 2;
+    using Attribute = TestAttribute;
+
+    void Apply(Attribute& attribute) const {
+        attribute.speed *= speedMultiplier;
+    }
+};
+
+struct TestEffect2 {
+    int speedDivider = 2;
+    using Attribute = TestAttribute;
+
+    void Apply(Attribute& attribute) const {
+        attribute.speed /= speedDivider;
+    }
+};
+
+struct TestEffect3 {
+    int speedDivider = 2;
+    // Won't work due to missing Attribute.
+    //using Attribute = TestAttribute;
+
+    void Apply(auto& attribute) const {
+        attribute.speed /= speedDivider;
+    }
+};
+
+struct TestEffect4 {
+    int speedDivider = 2;
+    // Won't work due to missing Attribute.
+    using Attribute = TestAttribute;
+
+    void ApplyWrongSignature(Attribute& attribute) const {
+        attribute.speed /= speedDivider;
+    }
+};
+
+TEST(ECSAttributesEffectsManager, construct)
+{
+    ecs::AttributesEffectsManager<ecs::Attributes<TestAttribute>, TestEffect, TestEffect2> attributes;
+}
+
+TEST(ECSAttributesEffectsManager, concepts)
+{
+    ecs::AttributesEffectsManager<ecs::Attributes<TestAttribute>, TestEffect, TestEffect2>();
+    //ecs::AttributesEffectsManager<ecs::Attributes<int>, TestEffect, TestEffect2>(); //Not correct attribute
+    //ecs::AttributesEffectsManager<ecs::Attributes<TestAttribute>, TestEffect4>(); //Incorrect effect Attribute variable
+    //ecs::AttributesEffectsManager<ecs::Attributes<TestAttribute>, TestEffect3>(); //Incorrect effect wrong signature
+}
+
+TEST(ECSAttributesEffectsManager, effect)
+{
+    using TEcs = ecs::ECSManager<int>;
+    TEcs ecs;
+    auto entity = ecs.BuildEntity(int{1});
+
+    ecs::AttributesEffectsManager<ecs::Attributes<TestAttribute>, TestEffect, TestEffect2> attributes;
+    {
+        const auto& attribute = attributes.Get<TestAttribute>(entity);
+        ASSERT_EQ(1, attribute.speed);
+    }
+
+    attributes.Add(entity, TestEffect{});
+    {
+        const auto& attribute = attributes.Get<TestAttribute>(entity);
+        ASSERT_EQ(2, attribute.speed);
+    }
+    attributes.Add(entity, TestEffect{});
+    {
+        const auto& attribute = attributes.Get<TestAttribute>(entity);
+        ASSERT_EQ(4, attribute.speed);
+    }
+    attributes.Add(entity, TestEffect{4});
+    {
+        const auto& attribute = attributes.Get<TestAttribute>(entity);
+        ASSERT_EQ(16, attribute.speed);
+    }
+    attributes.Add(entity, TestEffect2{});
+    {
+        const auto& attribute = attributes.Get<TestAttribute>(entity);
+        ASSERT_EQ(8, attribute.speed);
+    }
+}
+
+TEST(ECSAttributesEffectsManager, modify)
+{
+    using TEcs = ecs::ECSManager<int>;
+    TEcs ecs;
+    auto entity = ecs.BuildEntity(int{1});
+
+    ecs::AttributesEffectsManager<ecs::Attributes<TestAttribute>, TestEffect, TestEffect2> attributes;
+    attributes.Modify(entity, TestAttribute{false, 4});
+    {
+        const auto &attribute = attributes.Get<TestAttribute>(entity);
+        ASSERT_EQ(false, attribute.bla);
+        ASSERT_EQ(4, attribute.speed);
+    }
+    attributes.Add(entity, TestEffect{});
+    {
+        const auto& attribute = attributes.Get<TestAttribute>(entity);
+        ASSERT_EQ(8, attribute.speed);
+        ASSERT_EQ(false, attribute.bla);
+    }
+    attributes.Reset(entity);
+    {
+        const auto& attribute = attributes.Get<TestAttribute>(entity);
+        ASSERT_EQ(1, attribute.speed);
+        ASSERT_EQ(true, attribute.bla);
+    }
+}
+
+TEST(ECSAttributesEffectsManager, GetEffect)
+{
+    using TEcs = ecs::ECSManager<int>;
+    TEcs ecs;
+    auto entity = ecs.BuildEntity(int{1});
+
+    ecs::AttributesEffectsManager<ecs::Attributes<TestAttribute>, TestEffect, TestEffect2> attributes;
+    {
+        const auto& attribute = attributes.Get<TestAttribute>(entity);
+        ASSERT_EQ(1, attribute.speed);
+        auto effects = attributes.GetEffects<TestEffect>(entity);
+        ASSERT_EQ(effects.size(), 0);
+        auto effects2 = attributes.GetEffects<TestEffect2>(entity);
+        ASSERT_EQ(effects2.size(), 0);
+    }
+
+    attributes.Add(entity, TestEffect{});
+    attributes.Add(entity, TestEffect{});
+    attributes.Add(entity, TestEffect{4});
+    attributes.Add(entity, TestEffect2{});
+
+    std::vector<size_t> ids;
+    {
+        auto effects = attributes.GetEffects<TestEffect>(entity);
+        ASSERT_EQ(effects.size(), 3);
+        for (const auto& effect : effects) {
+            ids.push_back(effect.Id);
+        }
+    }
+    {
+        auto effects = attributes.GetEffects<TestEffect2>(entity);
+        ASSERT_EQ(effects.size(), 1);
+        for (const auto& effect : effects) {
+            ids.push_back(effect.Id);
+        }
+    }
+    for (const auto& id : ids) {
+        ASSERT_EQ(std::count(ids.begin(), ids.end(), id), 1);
+    }
+}
+
+TEST(ECSAttributesEffectsManager, RemoveEffect)
+{
+    using TEcs = ecs::ECSManager<int>;
+    TEcs ecs;
+    auto entity = ecs.BuildEntity(int{1});
+
+    ecs::AttributesEffectsManager<ecs::Attributes<TestAttribute>, TestEffect, TestEffect2> attributes;
+
+    attributes.Add(entity, TestEffect{});
+    attributes.Add(entity, TestEffect{});
+    attributes.Add(entity, TestEffect{4});
+    attributes.Add(entity, TestEffect2{});
+
+    {
+        {
+            const auto& attribute = attributes.Get<TestAttribute>(entity);
+            ASSERT_EQ(8, attribute.speed);
+        }
+        auto effects = attributes.GetEffects<TestEffect>(entity);
+        attributes.Remove<TestEffect>(entity, {effects[0], effects[2]});
+        {
+            const auto& attribute = attributes.Get<TestAttribute>(entity);
+            ASSERT_EQ(1, attribute.speed);
+        }
+    }
+    {
+        auto effects = attributes.GetEffects<TestEffect2>(entity);
+        ASSERT_EQ(effects.size(), 1);
+        attributes.Remove<TestEffect2>(entity, effects);
+        {
+            const auto& attribute = attributes.Get<TestAttribute>(entity);
+            ASSERT_EQ(2, attribute.speed);
+        }
+    }
+}
+
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

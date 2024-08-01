@@ -28,6 +28,7 @@ From [Wikipedia](https://en.wikipedia.org/wiki/Entity_component_system):
 - Heavy use of templates and concepts to make misuse of library harder and error message clearer.
 - Safe concurrent processing of systems.
 - Extensive unit testing of library.
+- Separate Attributes/Effects system for easy handling of attributes and effects.
 
 ## Using this ECS
 Create a container, components it should handle are coded in upfront:
@@ -81,6 +82,51 @@ for (auto [intVal, floatVal]: ecs.GetSystem<int, float>()) {
 }
 ASSERT_EQ(fsum, 10.0f);
 ASSERT_EQ(isum, 5);
+```
+
+## Using Attributes / Effects system
+The ECS library also includes a separate system for handling attributes and effects. This system is used to handle attributes and effects in a game, where an attribute is a value that can be modified by effects. An effect is a modifier that can be applied to an attribute. The system is designed to be easy to use and flexible where you define all the attributes and effects upfront. The user of the system builds up and extends it with the effects and attributes they need.
+
+A simple example where we have a basic attribute with one effect that doubles the health of the entity.
+```c++
+#include <ecs-cpp/AttributesEffects.h>
+struct HeroAttributes {
+    float health = 100.0f;
+    float speed = 1.0f;
+};
+
+struct HealthBoost {
+    float healthBoost = 2.0f;
+    using Attribute = HeroAttributes;
+
+    void Apply(Attribute& attribute) const {
+        attribute.health *= healthBoost;
+    }
+};
+
+ecs::ECSManager<int, std::string> ecs;
+ecs::AttributesEffectsManager<ecs::Attributes<HeroAttributes>, HealthBoost> aem;
+auto entity = ecs.BuildEntity(1);
+{
+    auto& attributes = aem.Get<HeroAttributes>(entity);
+    ASSERT_EQ(attributes.health, 100.0f);
+}
+{
+    auto& attributes = aem.Get<HeroAttributes>(entity);
+    aem.Add(entity, HealthBoost());
+    ASSERT_EQ(attributes.health, 200.0f);
+}
+{
+    auto& attributes = aem.Get<HeroAttributes>(entity);
+    aem.Add(entity, HealthBoost());
+    ASSERT_EQ(attributes.health, 400.0f);
+}
+{
+    aem.Modify(entity, HeroAttributes{10.0f, 1.0f});
+    auto& attributes = aem.Get<HeroAttributes>(entity);
+    ASSERT_EQ(attributes.health, 40.0f);
+}
+
 ```
 
 # To install
